@@ -439,7 +439,7 @@
       snake.unshift({x:nx,y:ny});
       if (mouse && mouse.x===nx && mouse.y===ny) {
         if ((mouse.hp||0) > 0) { mouse.hp -= 1; const m2 = spawnMouse(); mouse.x = m2.x; mouse.y = m2.y; mouse.cherryArmed = false; mouse.boostUntil = 0; }
-        else { score += 5; scoreEl.textContent = score; mouse = spawnMouse(); }
+        else { score += 5; scoreEl.textContent = score; mouse = spawnMouse(); ate = true; }
       }
       if (pre.type === 'apple' || pre.type === 'banana' || pre.type === 'orange' || pre.type === 'cherry') { getCPS(); }
       if (!ate) {
