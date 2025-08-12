@@ -370,12 +370,17 @@
       ];
       if (!wrapWalls && mouse.cherryArmed) {
         const out = dirs.filter(d=>{ const nx=mouse.x+d.x, ny=mouse.y+d.y; return nx<0||ny<0||nx>=GRID||ny>=GRID; });
-        if (out.length) return out[Math.floor(Math.random()*out.length)];
+        if (out.length) {
+          const card = out.filter(d => d.x === 0 || d.y === 0);
+          let cand = card.length ? card : out;
+          const prefer = cand.filter(d => (mouse.x===0 || mouse.x===GRID-1) ? d.y===0 : d.x===0);
+          if (prefer.length) cand = prefer;
+          return cand[Math.floor(Math.random()*cand.length)];
+        }
         let best=null, bestd=1e9;
         for (const d of dirs) {
           const nx=mouse.x+d.x, ny=mouse.y+d.y; if (!safeForMouse(nx,ny)) continue;
-          const dist = Math.min(mouse.x, GRID-1-mouse.x, mouse.y, GRID-1-mouse.y);
-          const ndist = Math.min((nx), GRID-1-(nx), (ny), GRID-1-(ny));
+          const ndist = Math.min(nx, GRID-1-nx, ny, GRID-1-ny);
           if (ndist < bestd) { bestd = ndist; best = d; }
         }
         if (best) return best;
@@ -395,7 +400,10 @@
       let nx = mouse.x + mv.x, ny = mouse.y + mv.y;
       let usedCherry = false;
       if (nx < 0 || ny < 0 || nx >= GRID || ny >= GRID) {
-        if (wrapWalls || mouse.cherryArmed) { nx = (nx+GRID)%GRID; ny = (ny+GRID)%GRID; usedCherry = !wrapWalls && mouse.cherryArmed; } else { return; }
+        if (wrapWalls || mouse.cherryArmed) {
+          nx = (nx+GRID)%GRID; ny = (ny+GRID)%GRID; usedCherry = !wrapWalls && mouse.cherryArmed;
+          if (!wrapWalls && usedCherry) { if (mv.x !== 0) ny = mouse.y; if (mv.y !== 0) nx = mouse.x; }
+        } else { return; }
       }
       if (!safeForMouse(nx,ny)) return;
       const pre = mouseEatAt(nx, ny);
