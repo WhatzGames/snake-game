@@ -9,7 +9,7 @@
     * { box-sizing: border-box; }
     html, body { height: 100%; }
     body { margin: 0; overflow: hidden; background: radial-gradient(1200px 800px at 70% -200px, #10151d 0%, var(--bg) 60%) fixed; color: #e6edf3; font: 16px/1.4 system-ui, -apple-system, Segoe UI, Roboto, Inter, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji"; display: grid; place-items: center; }
-    .shell { width: min(94vw, 980px); margin: 16px auto; }
+    .shell { width: 96vw; max-width: 100%; margin: 16px auto; }
     .card { background: linear-gradient(180deg, #0f141b 0%, #0c1117 100%); border: 1px solid #1f2937; border-radius: 18px; box-shadow: 0 10px 30px var(--shadow), inset 0 1px 0 #1a2230; padding: 14px; height: calc(100vh - 24px); display: flex; flex-direction: column; }
     header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; flex: 0 0 auto; padding-left: calc(220px + 14px); }
     h1 { font-size: 18px; margin: 0; letter-spacing: 0.5px; color: #dbeafe; display: flex; align-items: center; gap: 10px; }
@@ -41,7 +41,7 @@
     button:active { transform: translateY(1px); }
     .primary { background: linear-gradient(180deg, #1a2a1f, #0d1a12); border-color: #1f3b2a; }
     .danger { background: linear-gradient(180deg, #2a1a1a, #1a0d0d); border-color: #3b1f1f; }
-    @media (max-width: 780px) { .play { grid-template-columns: 1fr; } .shell { width: min(94vw, 720px); } header { padding-left: 0; } }
+    @media (max-width: 780px) { .play { grid-template-columns: 1fr; } .shell { width: 94vw; } header { padding-left: 0; } }
   </style>
 </head>
 <body>
