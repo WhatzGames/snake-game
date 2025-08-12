@@ -17,6 +17,9 @@ class Config {
   static MIN_MOUSE_CPS = 2;
   static MAX_MOUSE_CPS = 14;
 
+  // Mouse AI configuration
+  static MOUSE_ALERT_DIST = 3; // cells (Chebyshev distance) at or below which the mouse panics
+
   static HS_KEY = 'snake_highscore_v1';
 }
 
@@ -279,7 +282,7 @@ class ItemsManager {
 }
 
 class SnakeModel { constructor() { this.body = []; this.dir = {x:1,y:0}; this.nextDir = {x:1,y:0}; } setIdle(cx, cy){ this.body=[{x:cx+1,y:cy},{x:cx,y:cy},{x:cx-1,y:cy}]; this.dir={x:1,y:0}; this.nextDir={x:1,y:0}; } }
-class MouseModel { constructor(){ this.x=0; this.y=0; this.hp=0; this.boostUntil=0; this.boostAmount=0; this.cherryArmed=false; } }
+class MouseModel { constructor(){ this.x=0; this.y=0; this.hp=0; this.boostUntil=0; this.boostAmount=0; this.cherryArmed=false; this.alert=false; } }
 
 class Renderer {
   #ctx; #dpi;
@@ -299,7 +302,49 @@ class Renderer {
     const head = snake[0]; if (!head) return; const ctx = this.#ctx; const cx = head.x*c + c/2, cy = head.y*c + c/2; ctx.save(); ctx.fillStyle = '#0b1117'; const ex = dir.x !== 0 ? (dir.x * c*0.18) : c*0.12; const ey = dir.y !== 0 ? (dir.y * c*0.18) : c*0.12; ctx.beginPath(); ctx.arc(cx - ex, cy - ey, Math.max(2, c*0.07), 0, Math.PI*2); ctx.fill(); ctx.beginPath(); ctx.arc(cx + ex, cy + ey, Math.max(2, c*0.07), 0, Math.PI*2); ctx.fill(); ctx.restore();
   }
   drawMouse(mouse) {
-    if (!mouse) return; const ctx = this.#ctx; const c = this.#dpi.getCellSize(); const px = mouse.x*c, py = mouse.y*c; const r = Math.max(4, Math.floor(c/4)); ctx.save(); const grad = ctx.createRadialGradient(px + c*0.35, py + c*0.35, c*0.05, px + c*0.5, py + c*0.5, c*0.4); grad.addColorStop(0, '#e5e7eb'); grad.addColorStop(1, '#9ca3af'); ctx.fillStyle = grad; this.roundRect(px+2, py+2, c-4, c-4, r); ctx.fill(); ctx.fillStyle = '#111827'; ctx.beginPath(); ctx.arc(px + c*0.35, py + c*0.38, Math.max(1.5,c*0.06), 0, Math.PI*2); ctx.arc(px + c*0.65, py + c*0.38, Math.max(1.5,c*0.06), 0, Math.PI*2); ctx.fill(); ctx.strokeStyle = '#111827'; ctx.lineWidth = Math.max(1, c*0.05); ctx.lineCap = 'round'; const mx = px + c*0.5, my = py + c*0.52; ctx.beginPath(); ctx.moveTo(mx, my - c*0.06); ctx.lineTo(mx, my - c*0.01); ctx.stroke(); ctx.beginPath(); ctx.moveTo(mx, my - c*0.01); ctx.quadraticCurveTo(mx - c*0.05, my + c*0.05, mx - c*0.1, my + c*0.02); ctx.moveTo(mx, my - c*0.01); ctx.quadraticCurveTo(mx + c*0.05, my + c*0.05, mx + c*0.1, my + c*0.02); ctx.stroke(); ctx.restore(); }
+    if (!mouse) return; const ctx = this.#ctx; const c = this.#dpi.getCellSize(); const px = mouse.x*c, py = mouse.y*c; const r = Math.max(4, Math.floor(c/4));
+    ctx.save();
+    const grad = ctx.createRadialGradient(px + c*0.35, py + c*0.35, c*0.05, px + c*0.5, py + c*0.5, c*0.4);
+    grad.addColorStop(0, '#e5e7eb'); grad.addColorStop(1, '#9ca3af');
+    ctx.fillStyle = grad; this.roundRect(px+2, py+2, c-4, c-4, r); ctx.fill();
+
+    // Eyes
+    ctx.fillStyle = '#111827';
+    ctx.beginPath();
+    ctx.arc(px + c*0.35, py + c*0.38, Math.max(1.5,c*0.06), 0, Math.PI*2);
+    ctx.arc(px + c*0.65, py + c*0.38, Math.max(1.5,c*0.06), 0, Math.PI*2);
+    ctx.fill();
+
+    // Mouth
+    const mx = px + c*0.5, my = py + c*0.52;
+    if (mouse.alert) {
+      // Open mouth (surprised)
+      ctx.fillStyle = '#111827';
+      ctx.beginPath();
+      ctx.ellipse(mx, my, c*0.07, c*0.1, 0, 0, Math.PI*2);
+      ctx.fill();
+    } else {
+      ctx.strokeStyle = '#111827'; ctx.lineWidth = Math.max(1, c*0.05); ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(mx, my - c*0.06); ctx.lineTo(mx, my - c*0.01); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(mx, my - c*0.01); ctx.quadraticCurveTo(mx - c*0.05, my + c*0.05, mx - c*0.1, my + c*0.02);
+      ctx.moveTo(mx, my - c*0.01); ctx.quadraticCurveTo(mx + c*0.05, my + c*0.05, mx + c*0.1, my + c*0.02); ctx.stroke();
+    }
+
+    // Alert icon: red exclamation at top-right
+    if (mouse.alert) {
+      ctx.save();
+      ctx.fillStyle = '#ef4444';
+      const ax = px + c*0.76, ay = py + c*0.12;
+      const barW = Math.max(1.2, c*0.06), barH = c*0.18;
+      ctx.fillRect(ax - barW/2, ay - barH/2, barW, barH);
+      ctx.beginPath();
+      ctx.arc(ax, ay + barH/2 + c*0.03, Math.max(1.2, c*0.025), 0, Math.PI*2);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    ctx.restore();
+  }
   drawApple(g, px, py, c) { const r = g.createRadialGradient(px + c*0.55, py + c*0.45, c*0.1, px + c*0.5, py + c*0.5, c*0.5); r.addColorStop(0, '#ffb4b4'); r.addColorStop(1, '#f87171'); g.fillStyle = r; g.beginPath(); g.moveTo(px + c*0.18 + c*0.18, py + c*0.18); g.arcTo(px + c*0.82, py + c*0.18, px + c*0.82, py + c*0.82, c*0.18); g.arcTo(px + c*0.82, py + c*0.82, px + c*0.18, py + c*0.82, c*0.18); g.arcTo(px + c*0.18, py + c*0.82, px + c*0.18, py + c*0.18, c*0.18); g.arcTo(px + c*0.18, py + c*0.18, px + c*0.82, py + c*0.18, c*0.18); g.closePath(); g.fill(); g.strokeStyle = '#34d399'; g.lineWidth = Math.max(1.5, c*0.05); g.beginPath(); g.moveTo(px + c*0.5, py + c*0.15); g.quadraticCurveTo(px + c*0.7, py + c*0.0, px + c*0.78, py + c*0.18); g.stroke(); }
   drawBanana(g, px, py, c) { g.save(); g.translate(px + c*0.5, py + c*0.5); g.rotate(-0.3); g.fillStyle = '#fde047'; g.beginPath(); g.ellipse(0, 0, c*0.35, c*0.18, 0, 0, Math.PI*2); g.fill(); g.fillStyle = '#78350f'; g.beginPath(); g.arc(-c*0.3, 0, c*0.04, 0, Math.PI*2); g.fill(); g.beginPath(); g.arc(c*0.3, 0, c*0.04, 0, Math.PI*2); g.fill(); g.restore(); }
   drawOrange(g, px, py, c) { const r = g.createRadialGradient(px + c*0.55, py + c*0.45, c*0.1, px + c*0.5, py + c*0.5, c*0.5); r.addColorStop(0, '#ffd7a3'); r.addColorStop(1, '#fb923c'); g.fillStyle = r; g.beginPath(); g.arc(px + c*0.5, py + c*0.5, c*0.32, 0, Math.PI*2); g.fill(); g.strokeStyle = '#f59e0b'; g.beginPath(); g.moveTo(px + c*0.5, py + c*0.18); g.lineTo(px + c*0.62, py + c*0.06); g.stroke(); }
@@ -435,9 +480,83 @@ class Game {
     for (let i=0;i<this.snake.body.length;i++) { if (this.#items.key(this.snake.body[i].x,this.snake.body[i].y)===k) return false; }
     return true;
   }
+
+  // Distance helpers
+  torusDelta(a, b) { const n = Config.GRID; const d = Math.abs(a - b); return Math.min(d, n - d); }
+  chebyshevDistance(ax, ay, bx, by, torus) {
+    if (torus) {
+      const dx = this.torusDelta(ax, bx);
+      const dy = this.torusDelta(ay, by);
+      return Math.max(dx, dy);
+    }
+    return Math.max(Math.abs(ax - bx), Math.abs(ay - by));
+  }
+
+  // BFS to nearest item; returns next step delta or null
+  findMousePathStepToNearestItem() {
+    const dirs = [ {x:-1,y:-1},{x:0,y:-1},{x:1,y:-1}, {x:-1,y:0},{x:1,y:0}, {x:-1,y:1},{x:0,y:1},{x:1,y:1} ];
+    const start = { x: this.mouse.x, y: this.mouse.y };
+    const goals = new Set(this.#items.getItems().map(it => this.#items.key(it.x, it.y)));
+    if (goals.size === 0) return null;
+
+    const queue = [];
+    const visited = new Set();
+    const prev = new Map();
+
+    const norm = (x,y) => ({ x: (x + Config.GRID) % Config.GRID, y: (y + Config.GRID) % Config.GRID });
+    const key = (x,y) => this.#items.key(x,y);
+
+    const s0 = this.wrapWalls ? norm(start.x, start.y) : { x:start.x, y:start.y };
+    queue.push(s0);
+    visited.add(key(s0.x, s0.y));
+
+    while (queue.length) {
+      const cur = queue.shift();
+      const curKey = key(cur.x, cur.y);
+      if (goals.has(curKey)) {
+        // reconstruct first step
+        let nodeKey = curKey;
+        let node = cur;
+        while (prev.has(nodeKey)) {
+          const p = prev.get(nodeKey);
+          if (p && (p.x === s0.x && p.y === s0.y)) {
+            // first step from start to node
+            const dx = node.x - s0.x; const dy = node.y - s0.y;
+            const ndx = this.wrapWalls ? ((dx+Config.GRID+Config.GRID/2)%Config.GRID - Config.GRID/2) : dx; // choose shortest wrapped delta
+            const ndy = this.wrapWalls ? ((dy+Config.GRID+Config.GRID/2)%Config.GRID - Config.GRID/2) : dy;
+            return { x: Math.sign(ndx), y: Math.sign(ndy) };
+          }
+          node = p; nodeKey = key(node.x, node.y);
+        }
+        // If goal is start
+        return { x:0, y:0 };
+      }
+      for (const d of dirs) {
+        let nx = cur.x + d.x, ny = cur.y + d.y;
+        if (this.wrapWalls) { const t = norm(nx,ny); nx = t.x; ny = t.y; }
+        else if (nx<0||ny<0||nx>=Config.GRID||ny>=Config.GRID) { continue; }
+        const k = key(nx,ny);
+        if (visited.has(k)) continue;
+        if (!this.safeForMouse(nx,ny)) continue;
+        visited.add(k);
+        queue.push({x:nx,y:ny});
+        prev.set(k, cur);
+      }
+    }
+    return null;
+  }
+
   pickMouseMove() {
     const dirs = [ {x:-1,y:-1},{x:0,y:-1},{x:1,y:-1}, {x:-1,y:0},{x:1,y:0}, {x:-1,y:1},{x:0,y:1},{x:1,y:1} ];
     const m = this.mouse;
+
+    // Detect proximity to snake head
+    const head = this.snake.body[0];
+    const isTorus = !!this.wrapWalls;
+    const distToHead = head ? this.chebyshevDistance(m.x, m.y, head.x, head.y, isTorus) : 99;
+    m.alert = distToHead <= Config.MOUSE_ALERT_DIST;
+
+    // Special: if wrap is off and cherry is armed, prefer using a boundary step to escape
     if (!this.wrapWalls && m.cherryArmed) {
       const out = dirs.filter(d=>{ const nx=m.x+d.x, ny=m.y+d.y; return nx<0||ny<0||nx>=Config.GRID||ny>=Config.GRID; });
       if (out.length) {
@@ -455,6 +574,34 @@ class Game {
       }
       if (best) return best;
     }
+
+    // If in danger, flee: choose safe move maximizing distance from snake head
+    if (m.alert && head) {
+      const candidates = dirs.map(d=>{
+        let nx=m.x+d.x, ny=m.y+d.y;
+        if (this.wrapWalls) { nx=(nx+Config.GRID)%Config.GRID; ny=(ny+Config.GRID)%Config.GRID; }
+        return { d, nx, ny };
+      }).filter(n=> this.safeForMouse(n.nx, n.ny));
+      if (candidates.length) {
+        let best = candidates[0], bestScore = -1;
+        for (const c of candidates) {
+          const score = this.chebyshevDistance(c.nx, c.ny, head.x, head.y, isTorus);
+          if (score > bestScore) { bestScore = score; best = c; }
+        }
+        return best.d;
+      }
+    }
+
+    // Otherwise, pathfind to nearest item
+    const step = this.findMousePathStepToNearestItem();
+    if (step && (step.x!==0 || step.y!==0)) {
+      // Ensure the chosen step is safe (extra guard)
+      let nx = m.x + step.x, ny = m.y + step.y;
+      if (this.wrapWalls) { nx=(nx+Config.GRID)%Config.GRID; ny=(ny+Config.GRID)%Config.GRID; }
+      if (this.safeForMouse(nx,ny)) return step;
+    }
+
+    // Fallback: pick any safe move
     const cand = dirs.filter(d=>{
       let nx = m.x + d.x, ny = m.y + d.y;
       if (this.wrapWalls) { nx = (nx+Config.GRID)%Config.GRID; ny = (ny+Config.GRID)%Config.GRID; }
