@@ -1,4 +1,4 @@
-// Entry module for Snake — Dark Mode (Canvas)
+// Entry script for Snake — Dark Mode (Canvas)
 
 class Config {
   static GRID = 24;
@@ -30,10 +30,9 @@ class StorageService {
 }
 
 class ErrorOverlayService {
-  constructor(overlayManager) {
-    this.overlayManager = overlayManager;
-    this.errorCaptured = false;
-  }
+  #overlayManager;
+  #errorCaptured = false;
+  constructor(overlayManager) { this.#overlayManager = overlayManager; }
   installGlobalHandlers() {
     window.addEventListener('error', (e) => { this.handle(e && (e.error || e.message || e)); });
     window.addEventListener('unhandledrejection', (e) => { this.handle(e && (e.reason || e)); });
@@ -42,46 +41,47 @@ class ErrorOverlayService {
     let message = '';
     try { message = (err && (err.message || err.stack || err+'')) + ''; } catch { message = String(err); }
     if (/ResizeObserver/i.test(message)) return;
-    if (this.errorCaptured) return;
-    this.errorCaptured = true;
-    this.overlayManager.showError(message || 'Error');
+    if (this.#errorCaptured) return;
+    this.#errorCaptured = true;
+    this.#overlayManager.showError(message || 'Error');
     try { console.error(err); } catch {}
   }
+  isCaptured() { return this.#errorCaptured; }
 }
 
 class HUDService {
+  #scoreEl; #highEl; #speedEl; #hpEl; #slowEl;
   constructor() {
-    this.scoreEl = document.getElementById('score');
-    this.highEl = document.getElementById('high');
-    this.speedEl = document.getElementById('speed');
-    this.hpEl = document.getElementById('hp');
-    this.slowEl = document.getElementById('slow');
+    this.#scoreEl = document.getElementById('score');
+    this.#highEl = document.getElementById('high');
+    this.#speedEl = document.getElementById('speed');
+    this.#hpEl = document.getElementById('hp');
+    this.#slowEl = document.getElementById('slow');
   }
-  setScore(value) { if (this.scoreEl) this.scoreEl.textContent = String(value); }
-  setHighScore(value) { if (this.highEl) this.highEl.textContent = String(value); }
-  setHP(value) { if (this.hpEl) this.hpEl.textContent = String(value); }
-  setSpeedText(text) { if (this.speedEl) this.speedEl.textContent = text; }
-  setSlowText(text) { if (this.slowEl) this.slowEl.textContent = text; }
+  setScore(value) { if (this.#scoreEl) this.#scoreEl.textContent = String(value); }
+  setHighScore(value) { if (this.#highEl) this.#highEl.textContent = String(value); }
+  setHP(value) { if (this.#hpEl) this.#hpEl.textContent = String(value); }
+  setSpeedText(text) { if (this.#speedEl) this.#speedEl.textContent = text; }
+  setSlowText(text) { if (this.#slowEl) this.#slowEl.textContent = text; }
 }
 
 class DpiScalerService {
+  #canvas; #ctx; #boardSize = 0; #onResize; #resizeRaf = 0;
   constructor(canvas, onResize) {
-    this.canvas = canvas;
-    this.ctx = canvas.getContext('2d');
-    this.boardSize = 0;
-    this.onResize = onResize;
-    this.resizeRaf = 0;
+    this.#canvas = canvas;
+    this.#ctx = canvas.getContext('2d');
+    this.#onResize = onResize;
   }
-  getBoardSize() { return this.boardSize; }
-  getCtx() { return this.ctx; }
-  getCellSize() { return this.boardSize / Config.GRID; }
+  getBoardSize() { return this.#boardSize; }
+  getCtx() { return this.#ctx; }
+  getCellSize() { return this.#boardSize / Config.GRID; }
   scheduleFix() {
-    if (this.resizeRaf) return;
-    this.resizeRaf = requestAnimationFrame(() => { this.resizeRaf = 0; this.fixDPI(); });
+    if (this.#resizeRaf) return;
+    this.#resizeRaf = requestAnimationFrame(() => { this.#resizeRaf = 0; this.fixDPI(); });
   }
   install() {
     if ('ResizeObserver' in window) {
-      new ResizeObserver(() => { this.scheduleFix(); }).observe(this.canvas.parentElement);
+      new ResizeObserver(() => { this.scheduleFix(); }).observe(this.#canvas.parentElement);
     } else {
       window.addEventListener('resize', () => this.scheduleFix());
     }
@@ -90,8 +90,8 @@ class DpiScalerService {
   }
   fixDPI() {
     const dpr = window.devicePixelRatio || 1;
-    const canvas = this.canvas;
-    const ctx = this.ctx;
+    const canvas = this.#canvas;
+    const ctx = this.#ctx;
     const shell = document.querySelector('.shell');
     const card = document.querySelector('.card');
     const header = document.querySelector('header');
@@ -114,17 +114,17 @@ class DpiScalerService {
     const size = Math.max(140, Math.min(availW, availH));
     const dprW = Math.round(size * dpr);
     const dprH = Math.round(size * dpr);
-    if (canvas.width === dprW && canvas.height === dprH && canvas.style.width === size + 'px' && canvas.style.height === size + 'px' && this.boardSize === size) {
+    if (canvas.width === dprW && canvas.height === dprH && canvas.style.width === size + 'px' && canvas.style.height === size + 'px' && this.#boardSize === size) {
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       return;
     }
-    this.boardSize = size;
+    this.#boardSize = size;
     canvas.style.width = size + 'px';
     canvas.style.height = size + 'px';
     if (canvas.width !== dprW) canvas.width = dprW;
     if (canvas.height !== dprH) canvas.height = dprH;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    if (typeof this.onResize === 'function') this.onResize(this.boardSize);
+    if (typeof this.#onResize === 'function') this.#onResize(this.#boardSize);
   }
 }
 
@@ -183,13 +183,14 @@ class OverlayManager {
 }
 
 class ItemsManager {
-  constructor(rng) {
-    this.items = [];
-    this.rng = rng || Math.random;
-  }
+  #items = [];
+  #rng;
+  constructor(rng) { this.#rng = rng || Math.random; }
+  getItems() { return this.#items; }
+  clear() { this.#items = []; }
   key(x, y) { return `${x},${y}`; }
-  rndCell() { return { x: Math.floor(this.rng()*Config.GRID), y: Math.floor(this.rng()*Config.GRID) }; }
-  occupiedSet(snake) { const set = new Set(this.items.map(it=>this.key(it.x,it.y))); for (const s of snake) set.add(this.key(s.x,s.y)); return set; }
+  rndCell() { return { x: Math.floor(this.#rng()*Config.GRID), y: Math.floor(this.#rng()*Config.GRID) }; }
+  occupiedSet(snake) { const set = new Set(this.#items.map(it=>this.key(it.x,it.y))); for (const s of snake) set.add(this.key(s.x,s.y)); return set; }
   spawnAtEmpty(snake) {
     const occ = this.occupiedSet(snake);
     let cell, guard=0;
@@ -200,144 +201,122 @@ class ItemsManager {
     const occ = this.occupiedSet(snake);
     let guard=0;
     while (guard++ < Config.GRID*Config.GRID) {
-      const side = Math.floor(this.rng()*4); let x=0,y=0;
-      if (side===0) { x=0; y=Math.floor(this.rng()*Config.GRID); }
-      else if (side===1) { x=Config.GRID-1; y=Math.floor(this.rng()*Config.GRID); }
-      else if (side===2) { y=0; x=Math.floor(this.rng()*Config.GRID); }
-      else { y=Config.GRID-1; x=Math.floor(this.rng()*Config.GRID); }
+      const side = Math.floor(this.#rng()*4); let x=0,y=0;
+      if (side===0) { x=0; y=Math.floor(this.#rng()*Config.GRID); }
+      else if (side===1) { x=Config.GRID-1; y=Math.floor(this.#rng()*Config.GRID); }
+      else if (side===2) { y=0; x=Math.floor(this.#rng()*Config.GRID); }
+      else { y=Config.GRID-1; x=Math.floor(this.#rng()*Config.GRID); }
       if (!occ.has(this.key(x,y))) return {x,y};
     }
     return this.spawnAtEmpty(snake);
   }
   ensureApple(snake) {
-    if (!this.items.some(it=>it.type==='apple')) {
+    if (!this.#items.some(it=>it.type==='apple')) {
       const c = this.spawnAtEmpty(snake);
-      this.items.push({type:'apple', x:c.x, y:c.y});
+      this.#items.push({type:'apple', x:c.x, y:c.y});
     }
   }
   isSpecial(it) { return it.type==='banana' || it.type==='orange' || it.type==='pear' || it.type==='cherry'; }
-  specialPresent() { return this.items.some(it => this.isSpecial(it)); }
+  specialPresent() { return this.#items.some(it => this.isSpecial(it)); }
   maybeSpawnSpecial(snake) {
     if (this.specialPresent()) return;
-    const pick = Math.floor(this.rng()*4);
-    if (pick === 0) { const c = this.spawnAtEmpty(snake); this.items.push({type:'banana', x:c.x, y:c.y}); return; }
-    if (pick === 1) { const c = this.spawnAtEmpty(snake); this.items.push({type:'orange', x:c.x, y:c.y}); return; }
-    if (pick === 2) { const a = this.spawnAtEmpty(snake); const b = this.spawnAtEmpty(snake); const pid = this.rng().toString(36).slice(2); this.items.push({type:'pear', pair:pid, x:a.x, y:a.y}); this.items.push({type:'pear', pair:pid, x:b.x, y:b.y}); return; }
-    const e = this.spawnCherryAtEdge(snake); this.items.push({type:'cherry', x:e.x, y:e.y});
+    const pick = Math.floor(this.#rng()*4);
+    if (pick === 0) { const c = this.spawnAtEmpty(snake); this.#items.push({type:'banana', x:c.x, y:c.y}); return; }
+    if (pick === 1) { const c = this.spawnAtEmpty(snake); this.#items.push({type:'orange', x:c.x, y:c.y}); return; }
+    if (pick === 2) { const a = this.spawnAtEmpty(snake); const b = this.spawnAtEmpty(snake); const pid = this.#rng().toString(36).slice(2); this.#items.push({type:'pear', pair:pid, x:a.x, y:a.y}); this.#items.push({type:'pear', pair:pid, x:b.x, y:b.y}); return; }
+    const e = this.spawnCherryAtEdge(snake); this.#items.push({type:'cherry', x:e.x, y:e.y});
   }
   eatAtForSnake(nx, ny, game) {
-    const idx = this.items.findIndex(it => it.x===nx && it.y===ny);
+    const idx = this.#items.findIndex(it => it.x===nx && it.y===ny);
     if (idx === -1) return {type:null};
-    const it = this.items[idx];
+    const it = this.#items[idx];
     if (it.type === 'apple') {
-      this.items.splice(idx,1); game.incrementScore(1); this.ensureApple(game.snake.body); this.maybeSpawnSpecial(game.snake.body); return {type:'apple'};
+      this.#items.splice(idx,1); game.incrementScore(1); this.ensureApple(game.snake.body); this.maybeSpawnSpecial(game.snake.body); return {type:'apple'};
     }
     if (it.type === 'banana') {
-      this.items.splice(idx,1);
+      this.#items.splice(idx,1);
       const best = game.storage.getHighScore();
       const dur = Math.min(Config.BANANA_MAX_MS, Config.BANANA_BASE_MS + best * Config.BANANA_PER_HS_MS);
       game.applySlow(Config.BANANA_SLOW, performance.now() + dur);
       return {type:'banana'};
     }
     if (it.type === 'orange') {
-      this.items.splice(idx,1);
+      this.#items.splice(idx,1);
       if (game.hp < Config.MAX_HP) { game.setHP(game.hp + 1); }
       return {type:'orange'};
     }
     if (it.type === 'pear') {
       const pid = it.pair;
-      const other = this.items.find((j,i2)=> j.type==='pear' && j.pair===pid && i2!==idx);
-      this.items = this.items.filter(j=>!(j.type==='pear' && j.pair===pid));
+      const other = this.#items.find((j,i2)=> j.type==='pear' && j.pair===pid && i2!==idx);
+      this.#items = this.#items.filter(j=>!(j.type==='pear' && j.pair===pid));
       return {type:'pear', tx: other?other.x:nx, ty: other?other.y:ny};
     }
     if (it.type === 'cherry') {
-      this.items.splice(idx,1); game.incrementScore(1); game.armCherry(); return {type:'cherry'};
+      this.#items.splice(idx,1); game.incrementScore(1); game.armCherry(); return {type:'cherry'};
     }
     return {type:null};
   }
   eatAtForMouse(nx, ny, game) {
-    const idx = this.items.findIndex(it => it.x===nx && it.y===ny);
+    const idx = this.#items.findIndex(it => it.x===nx && it.y===ny);
     if (idx === -1) return {type:null};
-    const it = this.items[idx];
-    if (it.type === 'apple') { this.items.splice(idx,1); this.ensureApple(game.snake.body); this.maybeSpawnSpecial(game.snake.body); return {type:'apple'}; }
+    const it = this.#items[idx];
+    if (it.type === 'apple') { this.#items.splice(idx,1); this.ensureApple(game.snake.body); this.maybeSpawnSpecial(game.snake.body); return {type:'apple'}; }
     if (it.type === 'banana') {
-      this.items.splice(idx,1);
+      this.#items.splice(idx,1);
       const best = game.storage.getHighScore();
       const dur = Math.min(Config.BANANA_MAX_MS, Config.BANANA_BASE_MS + best * Config.BANANA_PER_HS_MS);
       game.mouse.boostAmount = Config.BANANA_SLOW; game.mouse.boostUntil = performance.now() + dur; return {type:'banana'};
     }
-    if (it.type === 'orange') { this.items.splice(idx,1); game.mouse.hp = (game.mouse.hp||0) + 1; return {type:'orange'}; }
+    if (it.type === 'orange') { this.#items.splice(idx,1); game.mouse.hp = (game.mouse.hp||0) + 1; return {type:'orange'}; }
     if (it.type === 'pear') {
-      const pid = it.pair; const other = this.items.find((j,i2)=> j.type==='pear' && j.pair===pid && i2!==idx);
-      this.items = this.items.filter(j=>!(j.type==='pear' && j.pair===pid));
+      const pid = it.pair; const other = this.#items.find((j,i2)=> j.type==='pear' && j.pair===pid && i2!==idx);
+      this.#items = this.#items.filter(j=>!(j.type==='pear' && j.pair===pid));
       return {type:'pear', tx: other?other.x:nx, ty: other?other.y:ny};
     }
-    if (it.type === 'cherry') { this.items.splice(idx,1); if (!game.wrapWalls) game.mouse.cherryArmed = true; return {type:'cherry'}; }
+    if (it.type === 'cherry') { this.#items.splice(idx,1); if (!game.wrapWalls) game.mouse.cherryArmed = true; return {type:'cherry'}; }
     return {type:null};
   }
 }
 
-class SnakeModel {
-  constructor() {
-    this.body = [];
-    this.dir = {x:1,y:0};
-    this.nextDir = {x:1,y:0};
-  }
-  setIdle(centerX, centerY) {
-    this.body = [{x:centerX+1,y:centerY},{x:centerX,y:centerY},{x:centerX-1,y:centerY}];
-    this.dir = {x:1,y:0};
-    this.nextDir = {x:1,y:0};
-  }
-}
-
-class MouseModel {
-  constructor() { this.x=0; this.y=0; this.hp=0; this.boostUntil=0; this.boostAmount=0; this.cherryArmed=false; }
-}
+class SnakeModel { constructor() { this.body = []; this.dir = {x:1,y:0}; this.nextDir = {x:1,y:0}; } setIdle(cx, cy){ this.body=[{x:cx+1,y:cy},{x:cx,y:cy},{x:cx-1,y:cy}]; this.dir={x:1,y:0}; this.nextDir={x:1,y:0}; } }
+class MouseModel { constructor(){ this.x=0; this.y=0; this.hp=0; this.boostUntil=0; this.boostAmount=0; this.cherryArmed=false; } }
 
 class Renderer {
-  constructor(ctx, dpi) {
-    this.ctx = ctx;
-    this.dpi = dpi;
-  }
+  #ctx; #dpi;
+  constructor(ctx, dpi) { this.#ctx = ctx; this.#dpi = dpi; }
   drawGrid() {
-    const ctx = this.ctx; const c = this.dpi.getCellSize(); const boardSize = this.dpi.getBoardSize();
+    const ctx = this.#ctx; const c = this.#dpi.getCellSize(); const boardSize = this.#dpi.getBoardSize();
     ctx.save(); ctx.strokeStyle = '#15202b'; ctx.lineWidth = 1; ctx.globalAlpha = 0.8;
     for (let i=1;i<Config.GRID;i++) { const p = Math.floor(i*c)+0.5; ctx.beginPath(); ctx.moveTo(p,0); ctx.lineTo(p,boardSize); ctx.stroke(); ctx.beginPath(); ctx.moveTo(0,p); ctx.lineTo(boardSize,p); ctx.stroke(); }
     ctx.restore();
   }
-  roundRect(x, y, w, h, r) {
-    const ctx = this.ctx;
-    ctx.beginPath();
-    ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath();
-  }
-  drawCell(x, y, color1, color2) {
-    const ctx = this.ctx; const c = this.dpi.getCellSize(); const px = x*c, py = y*c; const r = Math.max(4, Math.floor(c/5)); const grad = ctx.createLinearGradient(px, py, px, py + c); grad.addColorStop(0, color1); grad.addColorStop(1, color2); ctx.fillStyle = grad; this.roundRect(px+1, py+1, c-2, c-2, r); ctx.fill();
-  }
+  roundRect(x, y, w, h, r) { const ctx = this.#ctx; ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); }
+  drawCell(x, y, color1, color2) { const ctx = this.#ctx; const c = this.#dpi.getCellSize(); const px = x*c, py = y*c; const r = Math.max(4, Math.floor(c/5)); const grad = ctx.createLinearGradient(px, py, px, py + c); grad.addColorStop(0, color1); grad.addColorStop(1, color2); ctx.fillStyle = grad; this.roundRect(px+1, py+1, c-2, c-2, r); ctx.fill(); }
   drawSnake(snake, dir) {
-    const ctx = this.ctx; const c = this.dpi.getCellSize();
+    const c = this.#dpi.getCellSize();
     if (!snake || snake.length === 0) return;
     for (let i = snake.length - 1; i >= 0; i--) { const s = snake[i]; const t = i / Math.max(1, snake.length - 1); const base = 90 + Math.floor(t * 30); this.drawCell(s.x, s.y, `hsl(145, 70%, ${base}%)`, `hsl(145, 55%, ${base-18}%)`); }
-    const head = snake[0]; if (!head) return; const cx = head.x*c + c/2, cy = head.y*c + c/2; const ctx2 = this.ctx; ctx2.save(); ctx2.fillStyle = '#0b1117'; const ex = dir.x !== 0 ? (dir.x * c*0.18) : c*0.12; const ey = dir.y !== 0 ? (dir.y * c*0.18) : c*0.12; ctx2.beginPath(); ctx2.arc(cx - ex, cy - ey, Math.max(2, c*0.07), 0, Math.PI*2); ctx2.fill(); ctx2.beginPath(); ctx2.arc(cx + ex, cy + ey, Math.max(2, c*0.07), 0, Math.PI*2); ctx2.fill(); ctx2.restore();
+    const head = snake[0]; if (!head) return; const ctx = this.#ctx; const cx = head.x*c + c/2, cy = head.y*c + c/2; ctx.save(); ctx.fillStyle = '#0b1117'; const ex = dir.x !== 0 ? (dir.x * c*0.18) : c*0.12; const ey = dir.y !== 0 ? (dir.y * c*0.18) : c*0.12; ctx.beginPath(); ctx.arc(cx - ex, cy - ey, Math.max(2, c*0.07), 0, Math.PI*2); ctx.fill(); ctx.beginPath(); ctx.arc(cx + ex, cy + ey, Math.max(2, c*0.07), 0, Math.PI*2); ctx.fill(); ctx.restore();
   }
   drawMouse(mouse) {
-    if (!mouse) return; const ctx = this.ctx; const c = this.dpi.getCellSize(); const px = mouse.x*c, py = mouse.y*c; const r = Math.max(4, Math.floor(c/4)); ctx.save(); const grad = ctx.createRadialGradient(px + c*0.35, py + c*0.35, c*0.05, px + c*0.5, py + c*0.5, c*0.4); grad.addColorStop(0, '#e5e7eb'); grad.addColorStop(1, '#9ca3af'); ctx.fillStyle = grad; this.roundRect(px+2, py+2, c-4, c-4, r); ctx.fill(); ctx.fillStyle = '#111827'; ctx.beginPath(); ctx.arc(px + c*0.35, py + c*0.38, Math.max(1.5,c*0.06), 0, Math.PI*2); ctx.arc(px + c*0.65, py + c*0.38, Math.max(1.5,c*0.06), 0, Math.PI*2); ctx.fill(); ctx.strokeStyle = '#111827'; ctx.lineWidth = Math.max(1, c*0.05); ctx.lineCap = 'round'; const mx = px + c*0.5, my = py + c*0.52; ctx.beginPath(); ctx.moveTo(mx, my - c*0.06); ctx.lineTo(mx, my - c*0.01); ctx.stroke(); ctx.beginPath(); ctx.moveTo(mx, my - c*0.01); ctx.quadraticCurveTo(mx - c*0.05, my + c*0.05, mx - c*0.1, my + c*0.02); ctx.moveTo(mx, my - c*0.01); ctx.quadraticCurveTo(mx + c*0.05, my + c*0.05, mx + c*0.1, my + c*0.02); ctx.stroke(); ctx.restore();
-  }
+    if (!mouse) return; const ctx = this.#ctx; const c = this.#dpi.getCellSize(); const px = mouse.x*c, py = mouse.y*c; const r = Math.max(4, Math.floor(c/4)); ctx.save(); const grad = ctx.createRadialGradient(px + c*0.35, py + c*0.35, c*0.05, px + c*0.5, py + c*0.5, c*0.4); grad.addColorStop(0, '#e5e7eb'); grad.addColorStop(1, '#9ca3af'); ctx.fillStyle = grad; this.roundRect(px+2, py+2, c-4, c-4, r); ctx.fill(); ctx.fillStyle = '#111827'; ctx.beginPath(); ctx.arc(px + c*0.35, py + c*0.38, Math.max(1.5,c*0.06), 0, Math.PI*2); ctx.arc(px + c*0.65, py + c*0.38, Math.max(1.5,c*0.06), 0, Math.PI*2); ctx.fill(); ctx.strokeStyle = '#111827'; ctx.lineWidth = Math.max(1, c*0.05); ctx.lineCap = 'round'; const mx = px + c*0.5, my = py + c*0.52; ctx.beginPath(); ctx.moveTo(mx, my - c*0.06); ctx.lineTo(mx, my - c*0.01); ctx.stroke(); ctx.beginPath(); ctx.moveTo(mx, my - c*0.01); ctx.quadraticCurveTo(mx - c*0.05, my + c*0.05, mx - c*0.1, my + c*0.02); ctx.moveTo(mx, my - c*0.01); ctx.quadraticCurveTo(mx + c*0.05, my + c*0.05, mx + c*0.1, my + c*0.02); ctx.stroke(); ctx.restore(); }
   drawApple(g, px, py, c) { const r = g.createRadialGradient(px + c*0.55, py + c*0.45, c*0.1, px + c*0.5, py + c*0.5, c*0.5); r.addColorStop(0, '#ffb4b4'); r.addColorStop(1, '#f87171'); g.fillStyle = r; g.beginPath(); g.moveTo(px + c*0.18 + c*0.18, py + c*0.18); g.arcTo(px + c*0.82, py + c*0.18, px + c*0.82, py + c*0.82, c*0.18); g.arcTo(px + c*0.82, py + c*0.82, px + c*0.18, py + c*0.82, c*0.18); g.arcTo(px + c*0.18, py + c*0.82, px + c*0.18, py + c*0.18, c*0.18); g.arcTo(px + c*0.18, py + c*0.18, px + c*0.82, py + c*0.18, c*0.18); g.closePath(); g.fill(); g.strokeStyle = '#34d399'; g.lineWidth = Math.max(1.5, c*0.05); g.beginPath(); g.moveTo(px + c*0.5, py + c*0.15); g.quadraticCurveTo(px + c*0.7, py + c*0.0, px + c*0.78, py + c*0.18); g.stroke(); }
   drawBanana(g, px, py, c) { g.save(); g.translate(px + c*0.5, py + c*0.5); g.rotate(-0.3); g.fillStyle = '#fde047'; g.beginPath(); g.ellipse(0, 0, c*0.35, c*0.18, 0, 0, Math.PI*2); g.fill(); g.fillStyle = '#78350f'; g.beginPath(); g.arc(-c*0.3, 0, c*0.04, 0, Math.PI*2); g.fill(); g.beginPath(); g.arc(c*0.3, 0, c*0.04, 0, Math.PI*2); g.fill(); g.restore(); }
   drawOrange(g, px, py, c) { const r = g.createRadialGradient(px + c*0.55, py + c*0.45, c*0.1, px + c*0.5, py + c*0.5, c*0.5); r.addColorStop(0, '#ffd7a3'); r.addColorStop(1, '#fb923c'); g.fillStyle = r; g.beginPath(); g.arc(px + c*0.5, py + c*0.5, c*0.32, 0, Math.PI*2); g.fill(); g.strokeStyle = '#f59e0b'; g.beginPath(); g.moveTo(px + c*0.5, py + c*0.18); g.lineTo(px + c*0.62, py + c*0.06); g.stroke(); }
   drawPear(g, px, py, c) { g.save(); g.translate(px + c*0.5, py + c*0.55); g.fillStyle = '#86efac'; g.beginPath(); g.moveTo(0, -c*0.2); g.bezierCurveTo(c*0.3, -c*0.2, c*0.35, c*0.15, 0, c*0.3); g.bezierCurveTo(-c*0.35, c*0.15, -c*0.3, -c*0.2, 0, -c*0.2); g.fill(); g.strokeStyle = '#166534'; g.beginPath(); g.moveTo(0, -c*0.28); g.lineTo(0, -c*0.45); g.stroke(); g.restore(); }
   drawCherry(g, px, py, c) { g.save(); g.translate(px + c*0.5, py + c*0.5); g.fillStyle = '#ef4444'; g.beginPath(); g.arc(-c*0.12, c*0.1, c*0.16, 0, Math.PI*2); g.arc(c*0.16, c*0.04, c*0.16, 0, Math.PI*2); g.fill(); g.strokeStyle = '#10b981'; g.lineWidth = Math.max(1.2, c*0.05); g.beginPath(); g.moveTo(-c*0.12, c*0.1); g.quadraticCurveTo(-c*0.1, -c*0.2, 0, -c*0.25); g.moveTo(c*0.16, c*0.04); g.quadraticCurveTo(c*0.2, -c*0.2, 0, -c*0.25); g.stroke(); g.restore(); }
-  drawItems(items) {
-    const g = this.ctx; const c = this.dpi.getCellSize();
-    for (const it of items) {
-      const px = it.x*c, py = it.y*c;
-      if (it.type==='apple') this.drawApple(g,px,py,c);
-      else if (it.type==='banana') this.drawBanana(g,px,py,c);
-      else if (it.type==='orange') this.drawOrange(g,px,py,c);
-      else if (it.type==='pear') this.drawPear(g,px,py,c);
-      else if (it.type==='cherry') this.drawCherry(g,px,py,c);
-    }
+  drawMouseIcon(g, px, py, c) {
+    const r = Math.max(3, Math.floor(c/4));
+    const rr = (g2,x,y,w,h,rad)=>{ g2.beginPath(); g2.moveTo(x + rad, y); g2.arcTo(x + w, y, x + w, y + h, rad); g2.arcTo(x + w, y + h, x, y + h, rad); g2.arcTo(x, y + h, x, y, rad); g2.arcTo(x, y, x + w, y, rad); g2.closePath(); };
+    const grad = g.createRadialGradient(px + c*0.35, py + c*0.35, c*0.05, px + c*0.5, py + c*0.5, c*0.4);
+    grad.addColorStop(0, '#e5e7eb'); grad.addColorStop(1, '#9ca3af'); g.fillStyle = grad;
+    rr(g, px+2, py+2, c-4, c-4, r); g.fill();
+    g.fillStyle = '#111827'; g.beginPath(); g.arc(px + c*0.35, py + c*0.38, Math.max(1.2,c*0.06), 0, Math.PI*2); g.arc(px + c*0.65, py + c*0.38, Math.max(1.2,c*0.06), 0, Math.PI*2); g.fill();
+    g.strokeStyle = '#111827'; g.lineWidth = Math.max(1, c*0.05); g.lineCap = 'round'; const mx = px + c*0.5, my = py + c*0.52;
+    g.beginPath(); g.moveTo(mx, my - c*0.06); g.lineTo(mx, my - c*0.01); g.stroke();
+    g.beginPath(); g.moveTo(mx, my - c*0.01); g.quadraticCurveTo(mx - c*0.05, my + c*0.05, mx - c*0.1, my + c*0.02); g.moveTo(mx, my - c*0.01); g.quadraticCurveTo(mx + c*0.05, my + c*0.05, mx + c*0.1, my + c*0.02); g.stroke();
   }
+  drawItems(items) { const g = this.#ctx; const c = this.#dpi.getCellSize(); for (const it of items) { const px = it.x*c, py = it.y*c; if (it.type==='apple') this.drawApple(g,px,py,c); else if (it.type==='banana') this.drawBanana(g,px,py,c); else if (it.type==='orange') this.drawOrange(g,px,py,c); else if (it.type==='pear') this.drawPear(g,px,py,c); else if (it.type==='cherry') this.drawCherry(g,px,py,c); } }
   drawLegendIcons() {
     const make = (id, fn) => { const c = document.getElementById(id); if (!c) return; const g = c.getContext('2d'); const s = Math.min(c.width, c.height); g.clearRect(0,0,c.width,c.height); fn(g, (c.width - s)/2, (c.height - s)/2, s); };
     make('icon-apple', this.drawApple.bind(this));
@@ -345,11 +324,10 @@ class Renderer {
     make('icon-orange', this.drawOrange.bind(this));
     make('icon-pear', this.drawPear.bind(this));
     make('icon-cherry', this.drawCherry.bind(this));
-    // drawMouse icon
-    const c = document.getElementById('icon-mouse'); if (c) { const g = c.getContext('2d'); const s = Math.min(c.width, c.height); g.clearRect(0,0,c.width,c.height); const px=(c.width - s)/2, py=(c.height - s)/2; const tmpMouse = {x:0,y:0}; const savedCell = this.dpi.getCellSize; this.dpi.getCellSize = () => s; this.drawMouse({x:0,y:0}); this.dpi.getCellSize = savedCell; }
+    make('icon-mouse', this.drawMouseIcon.bind(this));
   }
   drawFrame(items, mouse, snake, dir) {
-    const ctx = this.ctx; const board = this.dpi.getBoardSize();
+    const ctx = this.#ctx; const board = this.#dpi.getBoardSize();
     ctx.clearRect(0, 0, board, board);
     this.drawGrid();
     this.drawItems(items);
@@ -361,79 +339,58 @@ class Renderer {
 }
 
 class Game {
+  #hud; #overlay; #storage; #dpi; #renderer; #items; #errorOverlay;
+  playing = false; wrapWalls = false; lastTime = 0; acc = 0; mouseAcc = 0; score = 0; hp = 0; slowUntil = 0; slowAmount = 0; cherrySteps = 0;
+  snake; mouse;
   constructor(canvas) {
-    // Services
-    this.hud = new HUDService();
-    this.overlay = new OverlayManager();
-    this.storage = new StorageService();
-    this.dpi = new DpiScalerService(canvas, () => {});
-    this.renderer = new Renderer(this.dpi.getCtx(), this.dpi);
-    this.items = new ItemsManager();
-    this.errorOverlay = new ErrorOverlayService(this.overlay);
-
-    // State
+    this.#hud = new HUDService();
+    this.#overlay = new OverlayManager();
+    this.#storage = new StorageService();
+    this.#dpi = new DpiScalerService(canvas, () => {});
+    this.#renderer = new Renderer(this.#dpi.getCtx(), this.#dpi);
+    this.#items = new ItemsManager();
+    this.#errorOverlay = new ErrorOverlayService(this.#overlay);
     this.snake = new SnakeModel();
     this.mouse = new MouseModel();
-
-    // Timers
-    this.playing = false;
-    this.wrapWalls = false;
-    this.lastTime = 0;
-    this.acc = 0;
-    this.mouseAcc = 0;
-
-    // Score/HP/Effects
-    this.score = 0;
-    this.hp = 0;
-    this.slowUntil = 0;
-    this.slowAmount = 0;
-    this.cherrySteps = 0;
-
-    // Bindings
     this.loop = this.loop.bind(this);
   }
+  get storage() { return this.#storage; }
   init() {
-    this.errorOverlay.installGlobalHandlers();
-    this.dpi.install();
-    const best = this.storage.getHighScore();
-    this.hud.setHighScore(best);
+    this.#errorOverlay.installGlobalHandlers();
+    this.#dpi.install();
+    const best = this.#storage.getHighScore();
+    this.#hud.setHighScore(best);
     this.setInitialIdleState();
-    this.overlay.startOverlay(this.wrapWalls, () => this.reset(), this.createWrapToggle());
-    this.renderer.drawLegendIcons();
+    this.#overlay.startOverlay(this.wrapWalls, () => this.reset(), this.createWrapToggle());
+    this.#renderer.drawLegendIcons();
     requestAnimationFrame(this.loop);
     this.installInput();
   }
-  createWrapToggle() {
-    const fn = () => { this.wrapWalls = !this.wrapWalls; fn.current = this.wrapWalls; };
-    fn.current = this.wrapWalls;
-    return fn;
-  }
+  createWrapToggle() { const fn = () => { this.wrapWalls = !this.wrapWalls; fn.current = this.wrapWalls; }; fn.current = this.wrapWalls; return fn; }
   setInitialIdleState() {
     const cx = Math.floor(Config.GRID/2);
     const cy = Math.floor(Config.GRID/2);
     this.snake.setIdle(cx, cy);
-    this.score = 0; this.hud.setScore(this.score);
+    this.score = 0; this.#hud.setScore(this.score);
     this.setHP(0);
     this.slowUntil = 0; this.slowAmount = 0; this.cherrySteps = 0;
     if (this.wrapWalls === undefined) this.wrapWalls = false;
     this.lastTime = 0; this.acc = 0; this.mouseAcc = 0;
-    this.items.items = [];
-    this.items.ensureApple(this.snake.body);
+    this.#items.clear();
+    this.#items.ensureApple(this.snake.body);
     this.mouse = this.spawnMouse();
     this.updateCPSHud();
   }
-  reset() {
-    this.playing = true; this.lastTime = 0; this.acc = 0; this.mouseAcc = 0; this.overlay.removeOverlays(); this.updateCPSHud(); this.overlay.hintOverlay('Pause with P · Toggle wrap with T');
-  }
+  reset() { this.playing = true; this.lastTime = 0; this.acc = 0; this.mouseAcc = 0; this.#overlay.removeOverlays(); this.updateCPSHud(); this.#overlay.hintOverlay('Pause with P · Toggle wrap with T'); }
   newGame() { this.setInitialIdleState(); this.reset(); }
   spawnMouse() {
-    const occ = this.items.occupiedSet(this.snake.body);
+    const occ = this.#items.occupiedSet(this.snake.body);
     let c, guard=0;
-    do { c = this.items.rndCell(); guard++; } while (occ.has(this.items.key(c.x,c.y)) && guard < Config.GRID*Config.GRID);
+    do { c = this.#items.rndCell(); guard++; } while (occ.has(this.#items.key(c.x,c.y)) && guard < Config.GRID*Config.GRID);
     const m = new MouseModel(); m.x=c.x; m.y=c.y; return m;
   }
-  incrementScore(delta) { this.score += delta; this.hud.setScore(this.score); }
-  setHP(value) { this.hp = value; this.hud.setHP(this.hp); }
+  incrementScore(delta) { this.score += delta; this.#hud.setScore(this.score); }
+  setHP(value) { this.hp = value; this.#hud.setHP(this.hp); }
   applySlow(amount, until) { this.slowAmount = amount; this.slowUntil = until; this.updateCPSHud(); }
   armCherry() { this.cherrySteps = this.wrapWalls ? 0 : 1; }
   getBaseCPS() { return Math.min(Config.MAX_CPS, Config.BASE_CPS + this.score * Config.CPS_INC); }
@@ -445,16 +402,15 @@ class Game {
     const baseFactor = base / Config.BASE_CPS;
     const effectFactor = Math.min(1, cps / base);
     const speedText = effectFactor < 1 ? `${baseFactor.toFixed(1)}x (×${effectFactor.toFixed(2)})` : `${baseFactor.toFixed(1)}x`;
-    this.hud.setSpeedText(speedText);
+    this.#hud.setSpeedText(speedText);
     const remain = Math.max(0, (this.slowUntil||0) - now);
-    this.hud.setSlowText(`${(remain/1000).toFixed(1)}s`);
+    this.#hud.setSlowText(`${(remain/1000).toFixed(1)}s`);
     return cps;
   }
   getMouseCPS() {
     const now = performance.now();
     const boost = (this.mouse && this.mouse.boostUntil && now < this.mouse.boostUntil) ? this.mouse.boostAmount : 0;
-    const cps = Math.max(Config.MIN_MOUSE_CPS, Math.min(Config.MAX_MOUSE_CPS, Config.BASE_MOUSE_CPS + boost));
-    return cps;
+    return Math.max(Config.MIN_MOUSE_CPS, Math.min(Config.MAX_MOUSE_CPS, Config.BASE_MOUSE_CPS + boost));
   }
   updateCPSHud() { this.getCPS(); }
   installInput() {
@@ -465,18 +421,18 @@ class Game {
         if (this.snake.body.length > 1 && nd.x === -this.snake.dir.x && nd.y === -this.snake.dir.y) return;
         this.snake.nextDir = nd; e.preventDefault();
       } else if (e.code === 'KeyP') {
-        this.playing = !this.playing; if (this.playing) this.overlay.removeOverlays(); else this.overlay.hintOverlay('Paused — press P to resume');
+        this.playing = !this.playing; if (this.playing) this.#overlay.removeOverlays(); else this.#overlay.hintOverlay('Paused — press P to resume');
       } else if (e.code === 'KeyR') {
         this.newGame();
       } else if (e.code === 'KeyT') {
-        this.wrapWalls = !this.wrapWalls; this.overlay.hintOverlay(`Wrap: ${this.wrapWalls? 'On':'Off'}`);
+        this.wrapWalls = !this.wrapWalls; this.#overlay.hintOverlay(`Wrap: ${this.wrapWalls? 'On':'Off'}`);
       }
     });
   }
   safeForMouse(x, y) {
     if (!this.wrapWalls && (x<0||y<0||x>=Config.GRID||y>=Config.GRID)) return false;
-    const k = this.items.key((x+Config.GRID)%Config.GRID, (y+Config.GRID)%Config.GRID);
-    for (let i=0;i<this.snake.body.length;i++) { if (this.items.key(this.snake.body[i].x,this.snake.body[i].y)===k) return false; }
+    const k = this.#items.key((x+Config.GRID)%Config.GRID, (y+Config.GRID)%Config.GRID);
+    for (let i=0;i<this.snake.body.length;i++) { if (this.#items.key(this.snake.body[i].x,this.snake.body[i].y)===k) return false; }
     return true;
   }
   pickMouseMove() {
@@ -519,17 +475,17 @@ class Game {
       } else { return; }
     }
     if (!this.safeForMouse(nx,ny)) return;
-    const pre = this.items.eatAtForMouse(nx, ny, this);
+    const pre = this.#items.eatAtForMouse(nx, ny, this);
     if (pre.type === 'pear') { nx = pre.tx; ny = pre.ty; }
     this.mouse.x = nx; this.mouse.y = ny;
     if (usedCherry) this.mouse.cherryArmed = false;
   }
   gameOver() {
     this.playing = false;
-    const best = Math.max(this.score, this.storage.getHighScore());
-    this.storage.setHighScore(best);
-    this.hud.setHighScore(best);
-    this.overlay.gameOver(this.score, best, this.hp, this.wrapWalls, () => this.newGame(), this.createWrapToggle());
+    const best = Math.max(this.score, this.#storage.getHighScore());
+    this.#storage.setHighScore(best);
+    this.#hud.setHighScore(best);
+    this.#overlay.gameOver(this.score, best, this.hp, this.wrapWalls, () => this.newGame(), this.createWrapToggle());
   }
   tick() {
     if (!this.playing) return;
@@ -542,7 +498,7 @@ class Game {
       else { this.gameOver(); return; }
     }
     let ate = false;
-    const pre = this.items.eatAtForSnake(nx, ny, this);
+    const pre = this.#items.eatAtForSnake(nx, ny, this);
     if (pre.type === 'pear') { nx = pre.tx; ny = pre.ty; ate = true; }
     else if (pre.type) { ate = true; }
 
@@ -560,7 +516,7 @@ class Game {
 
     if (pre.type === 'apple' || pre.type === 'banana' || pre.type === 'orange' || pre.type === 'cherry') { this.updateCPSHud(); }
     if (!ate) {
-      const post = this.items.eatAtForSnake(nx, ny, this);
+      const post = this.#items.eatAtForSnake(nx, ny, this);
       if (post.type === 'apple' || post.type === 'banana' || post.type === 'orange' || post.type === 'cherry') { this.updateCPSHud(); }
       else { this.snake.body.pop(); }
     }
@@ -583,12 +539,12 @@ class Game {
         this.tickMouse(); this.mouseAcc -= stepM;
       }
       this.updateCPSHud();
-      this.renderer.drawFrame(this.items.items, this.mouse, this.snake.body, this.snake.dir);
+      this.#renderer.drawFrame(this.#items.getItems(), this.mouse, this.snake.body, this.snake.dir);
     } catch (err) {
-      this.errorOverlay.handle(err);
+      this.#errorOverlay.handle(err);
       return;
     }
-    if (!this.errorOverlay.errorCaptured) requestAnimationFrame(this.loop);
+    if (!this.#errorOverlay.isCaptured()) requestAnimationFrame(this.loop);
   }
 }
 
