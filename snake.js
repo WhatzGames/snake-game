@@ -198,12 +198,12 @@ class OverlayManager {
   openLegend() {
     const html = `
       <div class="title">Legend & Controls</div>
-      <div class="legend-item"><canvas id="icon-apple" width="36" height="36"></canvas><div class="name">Apple</div><div class="desc">+1 score, grow by 1, slightly increases base speed.</div></div>
-      <div class="legend-item"><canvas id="icon-banana" width="36" height="36"></canvas><div class="name">Banana</div><div class="desc">Temporarily slows speed; duration scales with high score (capped).</div></div>
-      <div class="legend-item"><canvas id="icon-orange" width="36" height="36"></canvas><div class="name">Orange</div><div class="desc">+1 hitpoint up to a small maximum.</div></div>
-      <div class="legend-item"><canvas id="icon-pear" width="36" height="36"></canvas><div class="name">Pear</div><div class="desc">Spawns in pairs; eating one teleports you to the other.</div></div>
-      <div class="legend-item"><canvas id="icon-cherry" width="36" height="36"></canvas><div class="name">Cherry</div><div class="desc">Spawns on edges; when wrap is off: next move only, hit a wall to wrap once; otherwise just +1 score.</div></div>
-      <div class="legend-item"><canvas id="icon-mouse" width="36" height="36"></canvas><div class="name">Mouse</div><div class="desc">Moves in 8 directions, avoids the snake, eats fruits; +5 if eaten.</div></div>
+      <div class="legend-item"><canvas id="legend-icon-apple" width="36" height="36"></canvas><div class="name">Apple</div><div class="desc">+1 score, grow by 1, slightly increases base speed.</div></div>
+      <div class="legend-item"><canvas id="legend-icon-banana" width="36" height="36"></canvas><div class="name">Banana</div><div class="desc">Temporarily slows speed; duration scales with high score (capped).</div></div>
+      <div class="legend-item"><canvas id="legend-icon-orange" width="36" height="36"></canvas><div class="name">Orange</div><div class="desc">+1 hitpoint up to a small maximum.</div></div>
+      <div class="legend-item"><canvas id="legend-icon-pear" width="36" height="36"></canvas><div class="name">Pear</div><div class="desc">Spawns in pairs; eating one teleports you to the other.</div></div>
+      <div class="legend-item"><canvas id="legend-icon-cherry" width="36" height="36"></canvas><div class="name">Cherry</div><div class="desc">Spawns on edges; when wrap is off: next move only, hit a wall to wrap once; otherwise just +1 score.</div></div>
+      <div class="legend-item"><canvas id="legend-icon-mouse" width="36" height="36"></canvas><div class="name">Mouse</div><div class="desc">Moves in 8 directions, avoids the snake, eats fruits; +5 if eaten.</div></div>
       <div class="controls">
         <div class="legend-title">Controls</div>
         <div class="control-row"><div class="kbdbar"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></div><div class="desc">Move the snake. You cannot reverse into yourself.</div></div>
@@ -216,8 +216,8 @@ class OverlayManager {
     // Pause game while open; remember state
     const wasPlaying = this.#game.playing;
     this.#game.playing = false;
-    // Draw legend icons once overlay is added
-    this.#game.drawLegendIcons();
+    // Draw legend icons into the popup (use unique id prefix)
+    this.#game.drawLegendIcons('legend-');
     o.querySelector('#closeLegend').addEventListener('click', () => { o.remove(); this.#game.playing = wasPlaying; });
   }
 }
@@ -399,8 +399,8 @@ class Renderer {
     g.beginPath(); g.moveTo(mx, my - c*0.01); g.quadraticCurveTo(mx - c*0.05, my + c*0.05, mx - c*0.1, my + c*0.02); g.moveTo(mx, my - c*0.01); g.quadraticCurveTo(mx + c*0.05, my + c*0.05, mx + c*0.1, my + c*0.02); g.stroke();
   }
   drawItems(items) { const g = this.#ctx; const c = this.#dpi.getCellSize(); for (const it of items) { const px = it.x*c, py = it.y*c; if (it.type==='apple') this.drawApple(g,px,py,c); else if (it.type==='banana') this.drawBanana(g,px,py,c); else if (it.type==='orange') this.drawOrange(g,px,py,c); else if (it.type==='pear') this.drawPear(g,px,py,c); else if (it.type==='cherry') this.drawCherry(g,px,py,c); } }
-  drawLegendIcons() {
-    const make = (id, fn) => { const c = document.getElementById(id); if (!c) return; const g = c.getContext('2d'); const s = Math.min(c.width, c.height); g.clearRect(0,0,c.width,c.height); fn(g, (c.width - s)/2, (c.height - s)/2, s); };
+  drawLegendIcons(prefix = '') {
+    const make = (id, fn) => { const c = document.getElementById(prefix + id); if (!c) return; const g = c.getContext('2d'); const s = Math.min(c.width, c.height); g.clearRect(0,0,c.width,c.height); fn(g, (c.width - s)/2, (c.height - s)/2, s); };
     make('icon-apple', this.drawApple.bind(this));
     make('icon-banana', this.drawBanana.bind(this));
     make('icon-orange', this.drawOrange.bind(this));
@@ -437,7 +437,7 @@ class Game {
     this.loop = this.loop.bind(this);
   }
   get storage() { return this.#storage; }
-  drawLegendIcons() { this.#renderer.drawLegendIcons(); }
+  drawLegendIcons(prefix='') { this.#renderer.drawLegendIcons(prefix); }
   init() {
     this.#errorOverlay.installGlobalHandlers();
     this.#dpi.install();
