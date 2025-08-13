@@ -137,9 +137,11 @@ class DpiScalerService {
 
 class OverlayManager {
   #game;
+  #legendOpen = false;
+  #legendWasPlaying = false;
   constructor(game) { this.#game = game; }
   addOverlay(html, id) {
-    const wrap = document.querySelector('.board-wrap');
+    const wrap = document.body; // attach at top-level to ensure top-most rendering
     const overlay = document.createElement('div');
     overlay.className = 'overlay';
     if (id) overlay.id = id;
@@ -147,7 +149,7 @@ class OverlayManager {
     wrap.appendChild(overlay);
     return overlay;
   }
-  removeOverlays() { document.querySelectorAll('.overlay').forEach(n => n.remove()); }
+  removeOverlays() { document.querySelectorAll('.overlay').forEach(n => n.remove()); this.#legendOpen = false; }
   startOverlay(wrapWalls, onPlay, onToggleWrap) {
     const html = `
       <div class="title">Snake — Dark Mode</div>
@@ -196,6 +198,14 @@ class OverlayManager {
     infoBtn.addEventListener('click', () => this.openLegend());
   }
   openLegend() {
+    // If already open, just redraw icons and ensure paused
+    const existing = document.getElementById('legend');
+    if (existing) {
+      this.#legendOpen = true;
+      this.#game.playing = false;
+      this.#game.drawLegendIcons('legend-');
+      return existing;
+    }
     const html = `
       <div class="title">Legend & Controls</div>
       <div class="legend-item"><canvas id="legend-icon-apple" width="36" height="36"></canvas><div class="name">Apple</div><div class="desc">+1 score, grow by 1, slightly increases base speed.</div></div>
@@ -214,11 +224,17 @@ class OverlayManager {
       <div class="btns"><button class="primary" id="closeLegend">Close</button></div>`;
     const o = this.addOverlay(html, 'legend');
     // Pause game while open; remember state
-    const wasPlaying = this.#game.playing;
+    this.#legendWasPlaying = this.#game.playing;
+    this.#legendOpen = true;
     this.#game.playing = false;
     // Draw legend icons into the popup (use unique id prefix)
     this.#game.drawLegendIcons('legend-');
-    o.querySelector('#closeLegend').addEventListener('click', () => { o.remove(); this.#game.playing = wasPlaying; });
+    o.querySelector('#closeLegend').addEventListener('click', () => {
+      o.remove();
+      this.#legendOpen = false;
+      this.#game.playing = this.#legendWasPlaying;
+    });
+    return o;
   }
 }
 
