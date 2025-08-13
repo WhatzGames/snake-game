@@ -140,10 +140,10 @@ class OverlayManager {
   #legendOpen = false;
   #legendWasPlaying = false;
   constructor(game) { this.#game = game; }
-  addOverlay(html, id) {
+  addOverlay(html, id, interactive = true) {
     const wrap = document.body; // attach at top-level to ensure top-most rendering
     const overlay = document.createElement('div');
-    overlay.className = 'overlay interactive';
+    overlay.className = 'overlay' + (interactive ? ' interactive' : '');
     if (id) overlay.id = id;
     overlay.innerHTML = `<div class=\"panel\">${html}</div>`;
     wrap.appendChild(overlay);
@@ -152,14 +152,14 @@ class OverlayManager {
   removeOverlays() { document.querySelectorAll('.overlay').forEach(n => n.remove()); this.#legendOpen = false; }
   startOverlay(wrapWalls, onPlay, onToggleWrap) {
     const html = `
-      <div class="title">Snake — Dark Mode</div>
-      <div class="subtitle">Use WASD. Eat apples. Bananas slow time briefly, oranges add HP, pears teleport, cherries add +1 and enable a one-step wrap only when wrap is off.</div>
-      <div class="btns">
-        <button class="primary" id="playBtn">Play</button>
-        <button id="wrapBtn">Wrap: ${wrapWalls? 'On':'Off'}</button>
-        <button class="info-btn" id="infoBtn" aria-label="Info">ⓘ</button>
+      <div class=\"title\">Snake — Dark Mode</div>
+      <div class=\"subtitle\">Use WASD. Eat apples. Bananas slow time briefly, oranges add HP, pears teleport, cherries add +1 and enable a one-step wrap only when wrap is off.</div>
+      <div class=\"btns\">
+        <button class=\"primary\" id=\"playBtn\">Play</button>
+        <button id=\"wrapBtn\">Wrap: ${wrapWalls? 'On':'Off'}</button>
+        <button class=\"info-btn\" id=\"infoBtn\" aria-label=\"Info\">ⓘ</button>
       </div>`;
-    const o = this.addOverlay(html, 'start');
+    const o = this.addOverlay(html, 'start', true);
     o.querySelector('#playBtn').addEventListener('click', onPlay);
     const wrapBtn = o.querySelector('#wrapBtn');
     wrapBtn.addEventListener('click', () => { onToggleWrap(); wrapBtn.textContent = `Wrap: ${onToggleWrap.current? 'On':'Off'}`; });
@@ -167,30 +167,30 @@ class OverlayManager {
     infoBtn.addEventListener('click', () => this.openLegend());
   }
   hintOverlay(text) {
-    const html = `<div class="subtitle">${text}</div>`;
-    const o = this.addOverlay(html, 'hint');
+    const html = `<div class=\"subtitle\">${text}</div>`;
+    const o = this.addOverlay(html, 'hint', false);
     setTimeout(() => o.remove(), 2000);
   }
   showError(message) {
     this.removeOverlays();
     const safe = (message+"").replace(/[<>]/g, c => ({'<':'&lt;','>':'&gt;'}[c]));
     const html = `
-      <div class="title" style="color: var(--danger)">Oops — something went wrong</div>
-      <div class="subtitle" style="text-align:left;max-width:520px;white-space:pre-wrap">${safe}</div>
-      <div class="btns"><button class="primary" id="reloadBtn">Reload</button></div>`;
-    const o = this.addOverlay(html, 'error');
+      <div class=\"title\" style=\"color: var(--danger)\">Oops — something went wrong</div>
+      <div class=\"subtitle\" style=\"text-align:left;max-width:520px;white-space:pre-wrap\">${safe}</div>
+      <div class=\"btns\"><button class=\"primary\" id=\"reloadBtn\">Reload</button></div>`;
+    const o = this.addOverlay(html, 'error', true);
     o.querySelector('#reloadBtn').addEventListener('click', () => location.reload());
   }
   gameOver(score, best, hp, wrapWalls, onRestart, onToggleWrap) {
     const html = `
-      <div class="title" style="color: var(--danger)">Game Over</div>
-      <div class="subtitle">Score: <strong>${score}</strong> · Best: <strong>${best}</strong> · HP: <strong>${hp}</strong></div>
-      <div class="btns">
-        <button class="primary" id="restartBtn">Restart (R)</button>
-        <button id="wrapToggle">Wrap: ${wrapWalls?'On':'Off'}</button>
-        <button class="info-btn" id="infoBtn" aria-label="Info">ⓘ</button>
+      <div class=\"title\" style=\"color: var(--danger)\">Game Over</div>
+      <div class=\"subtitle\">Score: <strong>${score}</strong> · Best: <strong>${best}</strong> · HP: <strong>${hp}</strong></div>
+      <div class=\"btns\">
+        <button class=\"primary\" id=\"restartBtn\">Restart (R)</button>
+        <button id=\"wrapToggle\">Wrap: ${wrapWalls?'On':'Off'}</button>
+        <button class=\"info-btn\" id=\"infoBtn\" aria-label=\"Info\">ⓘ</button>
       </div>`;
-    const o = this.addOverlay(html, 'over');
+    const o = this.addOverlay(html, 'over', true);
     o.querySelector('#restartBtn').addEventListener('click', onRestart);
     const wrapToggle = o.querySelector('#wrapToggle');
     wrapToggle.addEventListener('click', () => { onToggleWrap(); wrapToggle.textContent = `Wrap: ${onToggleWrap.current? 'On':'Off'}`; });
@@ -202,22 +202,22 @@ class OverlayManager {
     const existing = document.getElementById('legend');
     if (existing) { existing.remove(); }
     const html = `
-      <div class="title">Legend & Controls</div>
-      <div class="legend-item"><canvas id="legend-icon-apple" width="36" height="36"></canvas><div class="name">Apple</div><div class="desc">+1 score, grow by 1, slightly increases base speed.</div></div>
-      <div class="legend-item"><canvas id="legend-icon-banana" width="36" height="36"></canvas><div class="name">Banana</div><div class="desc">Temporarily slows speed; duration scales with high score (capped).</div></div>
-      <div class="legend-item"><canvas id="legend-icon-orange" width="36" height="36"></canvas><div class="name">Orange</div><div class="desc">+1 hitpoint up to a small maximum.</div></div>
-      <div class="legend-item"><canvas id="legend-icon-pear" width="36" height="36"></canvas><div class="name">Pear</div><div class="desc">Spawns in pairs; eating one teleports you to the other.</div></div>
-      <div class="legend-item"><canvas id="legend-icon-cherry" width="36" height="36"></canvas><div class="name">Cherry</div><div class="desc">Spawns on edges; when wrap is off: next move only, hit a wall to wrap once; otherwise just +1 score.</div></div>
-      <div class="legend-item"><canvas id="legend-icon-mouse" width="36" height="36"></canvas><div class="name">Mouse</div><div class="desc">Moves in 8 directions, avoids the snake, eats fruits; +5 if eaten.</div></div>
-      <div class="controls">
-        <div class="legend-title">Controls</div>
-        <div class="control-row"><div class="kbdbar"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></div><div class="desc">Move the snake. You cannot reverse into yourself.</div></div>
-        <div class="control-row"><div class="kbdbar"><kbd>P</kbd></div><div class="desc">Pause / resume.</div></div>
-        <div class="control-row"><div class="kbdbar"><kbd>R</kbd></div><div class="desc">Restart from the current start state.</div></div>
-        <div class="control-row"><div class="kbdbar"><kbd>T</kbd></div><div class="desc">Toggle wrap-around walls.</div></div>
+      <div class=\"title\">Legend & Controls</div>
+      <div class=\"legend-item\"><canvas id=\"legend-icon-apple\" width=\"36\" height=\"36\"></canvas><div class=\"name\">Apple</div><div class=\"desc\">+1 score, grow by 1, slightly increases base speed.</div></div>
+      <div class=\"legend-item\"><canvas id=\"legend-icon-banana\" width=\"36\" height=\"36\"></canvas><div class=\"name\">Banana</div><div class=\"desc\">Temporarily slows speed; duration scales with high score (capped).</div></div>
+      <div class=\"legend-item\"><canvas id=\"legend-icon-orange\" width=\"36\" height=\"36\"></canvas><div class=\"name\">Orange</div><div class=\"desc\">+1 hitpoint up to a small maximum.</div></div>
+      <div class=\"legend-item\"><canvas id=\"legend-icon-pear\" width=\"36\" height=\"36\"></canvas><div class=\"name\">Pear</div><div class=\"desc\">Spawns in pairs; eating one teleports you to the other.</div></div>
+      <div class=\"legend-item\"><canvas id=\"legend-icon-cherry\" width=\"36\" height=\"36\"></canvas><div class=\"name\">Cherry</div><div class=\"desc\">Spawns on edges; when wrap is off: next move only, hit a wall to wrap once; otherwise just +1 score.</div></div>
+      <div class=\"legend-item\"><canvas id=\"legend-icon-mouse\" width=\"36\" height=\"36\"></canvas><div class=\"name\">Mouse</div><div class=\"desc\">Moves in 8 directions, avoids the snake, eats fruits; +5 if eaten.</div></div>
+      <div class=\"controls\">
+        <div class=\"legend-title\">Controls</div>
+        <div class=\"control-row\"><div class=\"kbdbar\"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></div><div class=\"desc\">Move the snake. You cannot reverse into yourself.</div></div>
+        <div class=\"control-row\"><div class=\"kbdbar\"><kbd>P</kbd></div><div class=\"desc\">Pause / resume.</div></div>
+        <div class=\"control-row\"><div class=\"kbdbar\"><kbd>R</kbd></div><div class=\"desc\">Restart from the current start state.</div></div>
+        <div class=\"control-row\"><div class=\"kbdbar\"><kbd>T</kbd></div><div class=\"desc\">Toggle wrap-around walls.</div></div>
       </div>
-      <div class="btns"><button class="primary" id="closeLegend">Close</button></div>`;
-    const o = this.addOverlay(html, 'legend');
+      <div class=\"btns\"><button class=\"primary\" id=\"closeLegend\">Close</button></div>`;
+    const o = this.addOverlay(html, 'legend', true);
     this.#legendWasPlaying = this.#game.playing;
     this.#legendOpen = true;
     this.#game.playing = false;
