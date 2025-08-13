@@ -218,12 +218,12 @@ class OverlayManager {
       </div>
       <div class="btns"><button class="primary" id="closeLegend">Close</button></div>`;
     const o = this.addOverlay(html, 'legend');
-    // Pause game while open; remember state
     this.#legendWasPlaying = this.#game.playing;
     this.#legendOpen = true;
     this.#game.playing = false;
-    // Draw legend icons after frame to ensure DOM is ready
-    requestAnimationFrame(() => { this.#game.drawLegendIcons('legend-'); });
+    const draw = () => this.#game.drawLegendIcons('legend-');
+    requestAnimationFrame(draw);
+    setTimeout(draw, 50);
     o.querySelector('#closeLegend').addEventListener('click', () => {
       o.remove();
       this.#legendOpen = false;
