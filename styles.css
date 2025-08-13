@@ -43,4 +43,12 @@ button:active { transform: translateY(1px); }
 .touchpad .btn.small { min-width: 56px; min-height: 56px; font-size: 18px; }
 .touchpad .btn:active { transform: translateY(1px); }
 
-@media (max-width: 780px) { .play { grid-template-columns: 1fr; } .shell { width: 94vw; } header { padding-left: 0; } .touchpad { display: block; } }
+@media (max-width: 780px) {
+  .play { grid-template-columns: 1fr; }
+  .shell { width: 100vw; margin: 8px auto; }
+  .card { height: auto; min-height: calc(100vh - 16px); }
+  header { padding-left: 0; flex-wrap: wrap; gap: 8px; }
+  .stats { width: 100%; justify-content: space-between; }
+  .legend { max-height: none; }
+  .touchpad { display: block; }
+}

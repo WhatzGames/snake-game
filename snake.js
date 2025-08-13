@@ -100,6 +100,7 @@ class DpiScalerService {
     const header = document.querySelector('header');
     const footer = document.querySelector('footer');
     const touch = document.querySelector('.touchpad');
+    const legend = document.querySelector('.legend');
     const cardStyles = getComputedStyle(card);
     const shellStyles = getComputedStyle(shell);
     const padTop = parseFloat(cardStyles.paddingTop)||0;
@@ -111,7 +112,10 @@ class DpiScalerService {
     const headH = header ? header.offsetHeight||0 : 0;
     const footH = footer ? footer.offsetHeight||0 : 0;
     const touchH = touch && getComputedStyle(touch).display !== 'none' ? (touch.offsetHeight||0) : 0;
-    const chrome = shellMT + shellMB + padTop + padBottom + borderTop + borderBottom + headH + footH + touchH;
+    // Subtract legend height only on narrow/mobile layout where it stacks above the board
+    const isMobile = window.innerWidth <= 780;
+    const legendH = (isMobile && legend && getComputedStyle(legend).display !== 'none') ? (legend.offsetHeight||0) : 0;
+    const chrome = shellMT + shellMB + padTop + padBottom + borderTop + borderBottom + headH + footH + touchH + legendH;
     const availH = Math.max(0, Math.floor(window.innerHeight - chrome - 8));
     const availW = Math.floor(canvas.parentElement.clientWidth||0);
     const size = Math.max(140, Math.min(availW, availH));
