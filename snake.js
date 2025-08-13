@@ -155,7 +155,7 @@ class OverlayManager {
       <div class="btns">
         <button class="primary" id="playBtn">Play</button>
         <button id="wrapBtn">Wrap: ${wrapWalls? 'On':'Off'}</button>
-        <button class="info-btn" id="infoBtn" aria-label="Info">I</button>
+        <button class="info-btn" id="infoBtn" aria-label="Info">ⓘ</button>
       </div>`;
     const o = this.addOverlay(html, 'start');
     o.querySelector('#playBtn').addEventListener('click', onPlay);
@@ -186,7 +186,7 @@ class OverlayManager {
       <div class="btns">
         <button class="primary" id="restartBtn">Restart (R)</button>
         <button id="wrapToggle">Wrap: ${wrapWalls?'On':'Off'}</button>
-        <button class="info-btn" id="infoBtn" aria-label="Info">I</button>
+        <button class="info-btn" id="infoBtn" aria-label="Info">ⓘ</button>
       </div>`;
     const o = this.addOverlay(html, 'over');
     o.querySelector('#restartBtn').addEventListener('click', onRestart);
@@ -216,7 +216,7 @@ class OverlayManager {
     // Pause game while open; remember state
     const wasPlaying = this.#game.playing;
     this.#game.playing = false;
-    // Draw legend icons
+    // Draw legend icons once overlay is added
     this.#game.drawLegendIcons();
     o.querySelector('#closeLegend').addEventListener('click', () => { o.remove(); this.#game.playing = wasPlaying; });
   }
