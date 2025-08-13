@@ -136,6 +136,8 @@ class DpiScalerService {
 }
 
 class OverlayManager {
+  #game;
+  constructor(game) { this.#game = game; }
   addOverlay(html, id) {
     const wrap = document.querySelector('.board-wrap');
     const overlay = document.createElement('div');
@@ -153,11 +155,14 @@ class OverlayManager {
       <div class="btns">
         <button class="primary" id="playBtn">Play</button>
         <button id="wrapBtn">Wrap: ${wrapWalls? 'On':'Off'}</button>
+        <button class="info-btn" id="infoBtn" aria-label="Info">I</button>
       </div>`;
     const o = this.addOverlay(html, 'start');
     o.querySelector('#playBtn').addEventListener('click', onPlay);
     const wrapBtn = o.querySelector('#wrapBtn');
     wrapBtn.addEventListener('click', () => { onToggleWrap(); wrapBtn.textContent = `Wrap: ${onToggleWrap.current? 'On':'Off'}`; });
+    const infoBtn = o.querySelector('#infoBtn');
+    infoBtn.addEventListener('click', () => this.openLegend());
   }
   hintOverlay(text) {
     const html = `<div class="subtitle">${text}</div>`;
@@ -181,11 +186,39 @@ class OverlayManager {
       <div class="btns">
         <button class="primary" id="restartBtn">Restart (R)</button>
         <button id="wrapToggle">Wrap: ${wrapWalls?'On':'Off'}</button>
+        <button class="info-btn" id="infoBtn" aria-label="Info">I</button>
       </div>`;
     const o = this.addOverlay(html, 'over');
     o.querySelector('#restartBtn').addEventListener('click', onRestart);
     const wrapToggle = o.querySelector('#wrapToggle');
     wrapToggle.addEventListener('click', () => { onToggleWrap(); wrapToggle.textContent = `Wrap: ${onToggleWrap.current? 'On':'Off'}`; });
+    const infoBtn = o.querySelector('#infoBtn');
+    infoBtn.addEventListener('click', () => this.openLegend());
+  }
+  openLegend() {
+    const html = `
+      <div class="title">Legend & Controls</div>
+      <div class="legend-item"><canvas id="icon-apple" width="36" height="36"></canvas><div class="name">Apple</div><div class="desc">+1 score, grow by 1, slightly increases base speed.</div></div>
+      <div class="legend-item"><canvas id="icon-banana" width="36" height="36"></canvas><div class="name">Banana</div><div class="desc">Temporarily slows speed; duration scales with high score (capped).</div></div>
+      <div class="legend-item"><canvas id="icon-orange" width="36" height="36"></canvas><div class="name">Orange</div><div class="desc">+1 hitpoint up to a small maximum.</div></div>
+      <div class="legend-item"><canvas id="icon-pear" width="36" height="36"></canvas><div class="name">Pear</div><div class="desc">Spawns in pairs; eating one teleports you to the other.</div></div>
+      <div class="legend-item"><canvas id="icon-cherry" width="36" height="36"></canvas><div class="name">Cherry</div><div class="desc">Spawns on edges; when wrap is off: next move only, hit a wall to wrap once; otherwise just +1 score.</div></div>
+      <div class="legend-item"><canvas id="icon-mouse" width="36" height="36"></canvas><div class="name">Mouse</div><div class="desc">Moves in 8 directions, avoids the snake, eats fruits; +5 if eaten.</div></div>
+      <div class="controls">
+        <div class="legend-title">Controls</div>
+        <div class="control-row"><div class="kbdbar"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></div><div class="desc">Move the snake. You cannot reverse into yourself.</div></div>
+        <div class="control-row"><div class="kbdbar"><kbd>P</kbd></div><div class="desc">Pause / resume.</div></div>
+        <div class="control-row"><div class="kbdbar"><kbd>R</kbd></div><div class="desc">Restart from the current start state.</div></div>
+        <div class="control-row"><div class="kbdbar"><kbd>T</kbd></div><div class="desc">Toggle wrap-around walls.</div></div>
+      </div>
+      <div class="btns"><button class="primary" id="closeLegend">Close</button></div>`;
+    const o = this.addOverlay(html, 'legend');
+    // Pause game while open; remember state
+    const wasPlaying = this.#game.playing;
+    this.#game.playing = false;
+    // Draw legend icons
+    this.#game.drawLegendIcons();
+    o.querySelector('#closeLegend').addEventListener('click', () => { o.remove(); this.#game.playing = wasPlaying; });
   }
 }
 
@@ -393,17 +426,18 @@ class Game {
   snake; mouse;
   constructor(canvas) {
     this.#hud = new HUDService();
-    this.#overlay = new OverlayManager();
     this.#storage = new StorageService();
     this.#dpi = new DpiScalerService(canvas, () => {});
     this.#renderer = new Renderer(this.#dpi.getCtx(), this.#dpi);
     this.#items = new ItemsManager();
+    this.#overlay = new OverlayManager(this);
     this.#errorOverlay = new ErrorOverlayService(this.#overlay);
     this.snake = new SnakeModel();
     this.mouse = new MouseModel();
     this.loop = this.loop.bind(this);
   }
   get storage() { return this.#storage; }
+  drawLegendIcons() { this.#renderer.drawLegendIcons(); }
   init() {
     this.#errorOverlay.installGlobalHandlers();
     this.#dpi.install();
@@ -414,6 +448,8 @@ class Game {
     this.#renderer.drawLegendIcons();
     requestAnimationFrame(this.loop);
     this.installInput();
+    const infoHeaderBtn = document.getElementById('infoHeaderBtn');
+    if (infoHeaderBtn) infoHeaderBtn.addEventListener('click', () => this.#overlay.openLegend());
   }
   createWrapToggle() { const fn = () => { this.wrapWalls = !this.wrapWalls; fn.current = this.wrapWalls; }; fn.current = this.wrapWalls; return fn; }
   setInitialIdleState() {
