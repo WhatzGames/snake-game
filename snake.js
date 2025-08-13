@@ -143,9 +143,9 @@ class OverlayManager {
   addOverlay(html, id) {
     const wrap = document.body; // attach at top-level to ensure top-most rendering
     const overlay = document.createElement('div');
-    overlay.className = 'overlay';
+    overlay.className = 'overlay interactive';
     if (id) overlay.id = id;
-    overlay.innerHTML = `<div class="panel">${html}</div>`;
+    overlay.innerHTML = `<div class=\"panel\">${html}</div>`;
     wrap.appendChild(overlay);
     return overlay;
   }
