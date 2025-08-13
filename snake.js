@@ -190,7 +190,7 @@ class OverlayManager {
         <button id=\"wrapToggle\">Wrap: ${wrapWalls?'On':'Off'}</button>
         <button class=\"info-btn\" id=\"infoBtn\" aria-label=\"Info\">ⓘ</button>
       </div>`;
-    const o = this.addOverlay(html, 'over', true);
+    const o = this.addOverlay(html, 'over', false);
     o.querySelector('#restartBtn').addEventListener('click', onRestart);
     const wrapToggle = o.querySelector('#wrapToggle');
     wrapToggle.addEventListener('click', () => { onToggleWrap(); wrapToggle.textContent = `Wrap: ${onToggleWrap.current? 'On':'Off'}`; });
