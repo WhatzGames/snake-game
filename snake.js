@@ -198,14 +198,9 @@ class OverlayManager {
     infoBtn.addEventListener('click', () => this.openLegend());
   }
   openLegend() {
-    // If already open, just redraw icons and ensure paused
+    // If legend exists, remove it first to avoid stale canvases
     const existing = document.getElementById('legend');
-    if (existing) {
-      this.#legendOpen = true;
-      this.#game.playing = false;
-      this.#game.drawLegendIcons('legend-');
-      return existing;
-    }
+    if (existing) { existing.remove(); }
     const html = `
       <div class="title">Legend & Controls</div>
       <div class="legend-item"><canvas id="legend-icon-apple" width="36" height="36"></canvas><div class="name">Apple</div><div class="desc">+1 score, grow by 1, slightly increases base speed.</div></div>
@@ -227,8 +222,8 @@ class OverlayManager {
     this.#legendWasPlaying = this.#game.playing;
     this.#legendOpen = true;
     this.#game.playing = false;
-    // Draw legend icons into the popup (use unique id prefix)
-    this.#game.drawLegendIcons('legend-');
+    // Draw legend icons after frame to ensure DOM is ready
+    requestAnimationFrame(() => { this.#game.drawLegendIcons('legend-'); });
     o.querySelector('#closeLegend').addEventListener('click', () => {
       o.remove();
       this.#legendOpen = false;
