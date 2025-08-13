@@ -460,11 +460,14 @@ class Game {
   updateCPSHud() { this.getCPS(); }
   installInput() {
     const KEYS = { KeyW:{x:0,y:-1}, KeyS:{x:0,y:1}, KeyA:{x:-1,y:0}, KeyD:{x:1,y:0} };
+    const applyDir = (nd) => {
+      if (!nd) return;
+      if (this.snake.body.length > 1 && nd.x === -this.snake.dir.x && nd.y === -this.snake.dir.y) return;
+      this.snake.nextDir = nd;
+    };
     document.addEventListener('keydown', (e) => {
       if (KEYS[e.code]) {
-        const nd = KEYS[e.code];
-        if (this.snake.body.length > 1 && nd.x === -this.snake.dir.x && nd.y === -this.snake.dir.y) return;
-        this.snake.nextDir = nd; e.preventDefault();
+        applyDir(KEYS[e.code]); e.preventDefault();
       } else if (e.code === 'KeyP') {
         this.playing = !this.playing; if (this.playing) this.#overlay.removeOverlays(); else this.#overlay.hintOverlay('Paused — press P to resume');
       } else if (e.code === 'KeyR') {
@@ -473,6 +476,31 @@ class Game {
         this.wrapWalls = !this.wrapWalls; this.#overlay.hintOverlay(`Wrap: ${this.wrapWalls? 'On':'Off'}`);
       }
     });
+
+    // Touchpad buttons
+    const mapDir = (name) => name==='up'?{x:0,y:-1}:name==='down'?{x:0,y:1}:name==='left'?{x:-1,y:0}:name==='right'?{x:1,y:0}:null;
+    document.querySelectorAll('[data-dir]')?.forEach(btn => {
+      const dirName = btn.getAttribute('data-dir');
+      btn.addEventListener('pointerdown', (ev)=>{ ev.preventDefault(); applyDir(mapDir(dirName)); });
+    });
+    document.querySelectorAll('[data-action="pause"]').forEach(btn => {
+      btn.addEventListener('pointerdown', (ev)=>{ ev.preventDefault(); this.playing = !this.playing; if (this.playing) this.#overlay.removeOverlays(); else this.#overlay.hintOverlay('Paused — touch ⏯ to resume'); });
+    });
+
+    // Swipe gestures on canvas
+    const board = document.getElementById('board');
+    if (board) {
+      let startX=0, startY=0, tracking=false;
+      const reset = ()=>{ tracking=false; };
+      const onDown = (e)=>{ const p=e.touches?e.touches[0]:e; startX=p.clientX; startY=p.clientY; tracking=true; e.preventDefault(); };
+      const onUp = (e)=>{ if (!tracking) return; const p=e.changedTouches?e.changedTouches[0]:e; const dx=p.clientX-startX, dy=p.clientY-startY; const ax=Math.abs(dx), ay=Math.abs(dy); const thr=16; if (ax>thr||ay>thr){ if (ax>ay) applyDir(dx>0?{x:1,y:0}:{x:-1,y:0}); else applyDir(dy>0?{x:0,y:1}:{x:0,y:-1}); } reset(); e.preventDefault(); };
+      board.addEventListener('pointerdown', onDown, {passive:false});
+      board.addEventListener('pointerup', onUp, {passive:false});
+      board.addEventListener('pointercancel', reset, {passive:true});
+      board.addEventListener('touchstart', onDown, {passive:false});
+      board.addEventListener('touchend', onUp, {passive:false});
+      board.addEventListener('touchcancel', reset, {passive:true});
+    }
   }
   safeForMouse(x, y) {
     if (!this.wrapWalls && (x<0||y<0||x>=Config.GRID||y>=Config.GRID)) return false;
