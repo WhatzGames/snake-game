@@ -21,6 +21,7 @@ class Config {
   static MOUSE_ALERT_DIST = 3; // cells (Chebyshev distance) at or below which the mouse panics
 
   static HS_KEY = 'snake_highscore_v1';
+  static CONTROLS_KEY = 'snake_controls_v1';
 }
 
 class StorageService {
@@ -29,6 +30,17 @@ class StorageService {
   }
   setHighScore(value) {
     try { localStorage.setItem(Config.HS_KEY, String(value)); } catch {}
+  }
+  getControls() {
+    try {
+      const raw = localStorage.getItem(Config.CONTROLS_KEY);
+      return raw ? JSON.parse(raw) : null;
+    } catch {
+      return null;
+    }
+  }
+  setControls(value) {
+    try { localStorage.setItem(Config.CONTROLS_KEY, JSON.stringify(value)); } catch {}
   }
 }
 
@@ -153,16 +165,19 @@ class OverlayManager {
   startOverlay(wrapWalls, onPlay, onToggleWrap) {
     const html = `
       <div class=\"title\">Snake — Dark Mode</div>
-      <div class=\"subtitle\">Use WASD. Eat apples. Bananas slow time briefly, oranges add HP, pears teleport, cherries add +1 and enable a one-step wrap only when wrap is off.</div>
+      <div class=\"subtitle\">Use the keyboard to move. Eat apples. Bananas slow time briefly, oranges add HP, pears teleport, cherries add +1 and enable a one-step wrap only when wrap is off.</div>
       <div class=\"btns\">
         <button class=\"primary\" id=\"playBtn\">Play</button>
         <button id=\"wrapBtn\">Wrap: ${wrapWalls? 'On':'Off'}</button>
+        ${this.#game.isTouch ? '' : '<button id=\\"controlsBtn\\">Controls</button>'}
         <button class=\"info-btn\" id=\"infoBtn\" aria-label=\"Info\">ⓘ</button>
       </div>`;
     const o = this.addOverlay(html, 'start', true);
     o.querySelector('#playBtn').addEventListener('click', onPlay);
     const wrapBtn = o.querySelector('#wrapBtn');
     wrapBtn.addEventListener('click', () => { onToggleWrap(); wrapBtn.textContent = `Wrap: ${onToggleWrap.current? 'On':'Off'}`; });
+    const controlsBtn = o.querySelector('#controlsBtn');
+    if (controlsBtn) controlsBtn.addEventListener('click', () => this.openControls());
     const infoBtn = o.querySelector('#infoBtn');
     infoBtn.addEventListener('click', () => this.openLegend());
   }
@@ -218,6 +233,7 @@ class OverlayManager {
       </div>
       <div class=\"btns\"><button class=\"primary\" id=\"closeLegend\">Close</button></div>`;
     const o = this.addOverlay(html, 'legend', true);
+    this.#game.updateKeyMap();
     this.#legendWasPlaying = this.#game.playing;
     this.#legendOpen = true;
     this.#game.playing = false;
@@ -229,6 +245,69 @@ class OverlayManager {
       this.#legendOpen = false;
       this.#game.playing = this.#legendWasPlaying;
     });
+    return o;
+  }
+  openControls(onDone, require = false) {
+    const current = this.#game.storage.getControls();
+    const scheme = current && current.scheme ? current.scheme : 'wasd';
+    const keys = current && current.keys ? current.keys : {up:'KeyW', left:'KeyA', down:'KeyS', right:'KeyD'};
+    const keyText = (code)=>{
+      if (!code) return '?';
+      if (code.startsWith('Key')) return code.slice(3);
+      const arrows = {ArrowUp:'↑',ArrowDown:'↓',ArrowLeft:'←',ArrowRight:'→'};
+      if (arrows[code]) return arrows[code];
+      return code;
+    };
+    const html = `
+      <div class="title">Choose Controls</div>
+      <div style="margin-bottom:8px;text-align:left">
+        <label><input type="radio" name="scheme" value="wasd" ${scheme==='wasd'?'checked':''}> WASD</label><br>
+        <label><input type="radio" name="scheme" value="arrows" ${scheme==='arrows'?'checked':''}> Arrow Keys</label><br>
+        <label><input type="radio" name="scheme" value="custom" ${scheme==='custom'?'checked':''}> Custom</label>
+      </div>
+      <div id="customWrap" style="${scheme==='custom'?'':'display:none'};text-align:left;margin-bottom:8px">
+        <div>Up: <button data-key="up" class="primary" style="min-width:40px">${keyText(keys.up)}</button></div>
+        <div>Left: <button data-key="left" class="primary" style="min-width:40px">${keyText(keys.left)}</button></div>
+        <div>Down: <button data-key="down" class="primary" style="min-width:40px">${keyText(keys.down)}</button></div>
+        <div>Right: <button data-key="right" class="primary" style="min-width:40px">${keyText(keys.right)}</button></div>
+      </div>
+      <div class="btns">
+        <button class="primary" id="saveControls">Save</button>
+        ${require ? '' : '<button id="cancelControls">Cancel</button>'}
+      </div>`;
+    const o = this.addOverlay(html, 'controls', true);
+    o.tabIndex = -1;
+    o.focus();
+    const radio = o.querySelectorAll('input[name="scheme"]');
+    const customWrap = o.querySelector('#customWrap');
+    radio.forEach(r=>r.addEventListener('change',()=>{customWrap.style.display = r.value==='custom'?'' : 'none';}));
+    const keyButtons = o.querySelectorAll('button[data-key]');
+    let capture = null;
+    keyButtons.forEach(btn=>{
+      btn.addEventListener('click',()=>{ capture = btn.getAttribute('data-key'); btn.textContent='?'; });
+    });
+    const keyHandler = (ev)=>{
+      if (!capture) return;
+      ev.preventDefault();
+      keys[capture] = ev.code;
+      const btn = o.querySelector(`button[data-key="${capture}"]`);
+      if (btn) btn.textContent = keyText(ev.code);
+      capture = null;
+    };
+    o.addEventListener('keydown', keyHandler);
+    o.querySelector('#saveControls').addEventListener('click',()=>{
+      let chosen = 'wasd';
+      radio.forEach(r=>{ if (r.checked) chosen = r.value; });
+      let saveKeys = keys;
+      if (chosen === 'wasd') saveKeys = {up:'KeyW', left:'KeyA', down:'KeyS', right:'KeyD'};
+      else if (chosen === 'arrows') saveKeys = {up:'ArrowUp', left:'ArrowLeft', down:'ArrowDown', right:'ArrowRight'};
+      this.#game.storage.setControls({scheme:chosen, keys:saveKeys});
+      this.#game.updateKeyMap();
+      o.remove();
+      if (onDone) onDone();
+    });
+    const cancelBtn = o.querySelector('#cancelControls');
+    if (cancelBtn) cancelBtn.addEventListener('click',()=>{ o.remove(); if (onDone) onDone(); });
     return o;
   }
 }
@@ -445,6 +524,8 @@ class Game {
     this.#errorOverlay = new ErrorOverlayService(this.#overlay);
     this.snake = new SnakeModel();
     this.mouse = new MouseModel();
+    this.keyMap = {};
+    this.isTouch = false;
     this.loop = this.loop.bind(this);
   }
   get storage() { return this.#storage; }
@@ -454,15 +535,54 @@ class Game {
     this.#dpi.install();
     const best = this.#storage.getHighScore();
     this.#hud.setHighScore(best);
+    this.isTouch = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
     this.setInitialIdleState();
-    this.#overlay.startOverlay(this.wrapWalls, () => this.reset(), this.createWrapToggle());
     this.#renderer.drawLegendIcons();
     requestAnimationFrame(this.loop);
     this.installInput();
     const infoHeaderBtn = document.getElementById('infoHeaderBtn');
     if (infoHeaderBtn) infoHeaderBtn.addEventListener('click', () => this.#overlay.openLegend());
+    const controlsHeaderBtn = document.getElementById('controlsHeaderBtn');
+    if (controlsHeaderBtn && !this.isTouch) controlsHeaderBtn.addEventListener('click', () => this.#overlay.openControls());
+    const controls = this.#storage.getControls();
+    if (!this.isTouch && !controls) {
+      this.#overlay.openControls(() => {
+        this.updateKeyMap();
+        this.#overlay.startOverlay(this.wrapWalls, () => this.reset(), this.createWrapToggle());
+      }, true);
+    } else {
+      this.updateKeyMap();
+      this.#overlay.startOverlay(this.wrapWalls, () => this.reset(), this.createWrapToggle());
+    }
   }
   createWrapToggle() { const fn = () => { this.wrapWalls = !this.wrapWalls; fn.current = this.wrapWalls; }; fn.current = this.wrapWalls; return fn; }
+  updateLegendControls(keys) {
+    const containers = document.querySelectorAll('.controls');
+    const txt = (code) => {
+      if (!code) return '?';
+      if (code.startsWith('Key')) return code.slice(3);
+      const map = {ArrowUp:'↑',ArrowDown:'↓',ArrowLeft:'←',ArrowRight:'→'};
+      return map[code] || code;
+    };
+    const order = [keys.up, keys.left, keys.down, keys.right];
+    containers.forEach(cont => {
+      const bar = cont.querySelector('.control-row .kbdbar');
+      if (!bar) return;
+      const kbds = bar.querySelectorAll('kbd');
+      order.forEach((code, idx) => { if (kbds[idx]) kbds[idx].textContent = txt(code); });
+    });
+  }
+  updateKeyMap() {
+    const cfg = this.#storage.getControls();
+    const keys = cfg && cfg.keys ? cfg.keys : {up:'KeyW', left:'KeyA', down:'KeyS', right:'KeyD'};
+    this.keyMap = {
+      [keys.up]: {x:0,y:-1},
+      [keys.down]: {x:0,y:1},
+      [keys.left]: {x:-1,y:0},
+      [keys.right]: {x:1,y:0},
+    };
+    this.updateLegendControls(keys);
+  }
   setInitialIdleState() {
     const cx = Math.floor(Config.GRID/2);
     const cy = Math.floor(Config.GRID/2);
@@ -510,15 +630,15 @@ class Game {
   }
   updateCPSHud() { this.getCPS(); }
   installInput() {
-    const KEYS = { KeyW:{x:0,y:-1}, KeyS:{x:0,y:1}, KeyA:{x:-1,y:0}, KeyD:{x:1,y:0} };
+    this.updateKeyMap();
     const applyDir = (nd) => {
       if (!nd) return;
       if (this.snake.body.length > 1 && nd.x === -this.snake.dir.x && nd.y === -this.snake.dir.y) return;
       this.snake.nextDir = nd;
     };
     document.addEventListener('keydown', (e) => {
-      if (KEYS[e.code]) {
-        applyDir(KEYS[e.code]); e.preventDefault();
+      if (this.keyMap[e.code]) {
+        applyDir(this.keyMap[e.code]); e.preventDefault();
       } else if (e.code === 'KeyP') {
         this.playing = !this.playing; if (this.playing) this.#overlay.removeOverlays(); else this.#overlay.hintOverlay('Paused — press P to resume');
       } else if (e.code === 'KeyR') {
@@ -774,8 +894,14 @@ class Game {
   }
 }
 
-(function main() {
-  const canvas = document.getElementById('board');
-  const game = new Game(canvas);
-  game.init();
-})();
+if (typeof window !== 'undefined') {
+  (function main() {
+    const canvas = document.getElementById('board');
+    const game = new Game(canvas);
+    game.init();
+  })();
+}
+
+if (typeof module !== 'undefined') {
+  module.exports = { StorageService, Config };
+}
