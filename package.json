@@ -1,0 +1,7 @@
+{
+  "name": "snake-game",
+  "version": "1.0.0",
+  "scripts": {
+    "test": "node snake.test.js"
+  }
+}

@@ -37,6 +37,7 @@ button:active { transform: translateY(1px); }
 .primary { background: linear-gradient(180deg, #1a2a1f, #0d1a12); border-color: #1f3b2a; }
 .danger { background: linear-gradient(180deg, #2a1a1a, #1a0d0d); border-color: #3b1f1f; }
 .info-btn { width: 42px; height: 42px; border-radius: 10px; font-size: 22px; display: grid; place-items: center; line-height: 1; }
+.desktop-only { display: inline-block; }
 
 /* Touch controls (hidden on desktop) */
 .touchpad { display: none; margin-top: 10px; }
@@ -54,4 +55,5 @@ button:active { transform: translateY(1px); }
   .stats { width: 100%; justify-content: space-between; }
   .legend { display: none; }
   .touchpad { display: block; }
+  .desktop-only { display: none; }
 }
