@@ -31,18 +31,16 @@ export class StorageService {
     try { return +localStorage.getItem(Config.HS_KEY) || 0; } catch { return 0; }
   }
   setHighScore(value) {
-    try { localStorage.setItem(Config.HS_KEY, String(value)); } catch {}
+    try { localStorage.setItem(Config.HS_KEY, String(value)); } catch { /* empty */ }
   }
   getControls() {
     try {
       const raw = localStorage.getItem(Config.CONTROLS_KEY);
       return raw ? JSON.parse(raw) : null;
-    } catch {
-      return null;
-    }
+    } catch { return null; }
   }
   setControls(value) {
-    try { localStorage.setItem(Config.CONTROLS_KEY, JSON.stringify(value)); } catch {}
+    try { localStorage.setItem(Config.CONTROLS_KEY, JSON.stringify(value)); } catch { /* empty */ }
   }
 }
 
@@ -61,7 +59,7 @@ class ErrorOverlayService {
     if (this.#errorCaptured) return;
     this.#errorCaptured = true;
     this.#overlayManager.showError(message || 'Error');
-    try { console.error(err); } catch {}
+    try { console.error(err); } catch { /* empty */ }
   }
   isCaptured() { return this.#errorCaptured; }
 }
@@ -251,6 +249,8 @@ class OverlayManager {
   }
   openControls(onDone, require = false) {
     const current = this.#game.storage.getControls();
+    const wasPlaying = this.#game.playing;
+    this.#game.playing = false;
     const scheme = current && current.scheme ? current.scheme : 'wasd';
     const keys = current && current.keys ? current.keys : {up:'KeyW', left:'KeyA', down:'KeyS', right:'KeyD'};
     const keyText = (code)=>{
@@ -280,6 +280,11 @@ class OverlayManager {
     const o = this.addOverlay(html, 'controls', true);
     o.tabIndex = -1;
     o.focus();
+    const finish = () => {
+      o.remove();
+      this.#game.playing = wasPlaying;
+      if (onDone) onDone();
+    };
     const radio = o.querySelectorAll('input[name="scheme"]');
     const customWrap = o.querySelector('#customWrap');
     radio.forEach(r=>r.addEventListener('change',()=>{customWrap.style.display = r.value==='custom'?'' : 'none';}));
@@ -305,11 +310,10 @@ class OverlayManager {
       else if (chosen === 'arrows') saveKeys = {up:'ArrowUp', left:'ArrowLeft', down:'ArrowDown', right:'ArrowRight'};
       this.#game.storage.setControls({scheme:chosen, keys:saveKeys});
       this.#game.updateKeyMap();
-      o.remove();
-      if (onDone) onDone();
+      finish();
     });
     const cancelBtn = o.querySelector('#cancelControls');
-    if (cancelBtn) cancelBtn.addEventListener('click',()=>{ o.remove(); if (onDone) onDone(); });
+    if (cancelBtn) cancelBtn.addEventListener('click',()=>{ finish(); });
     return o;
   }
 }
@@ -850,7 +854,7 @@ class Game {
     if (pre.type === 'pear') { nx = pre.tx; ny = pre.ty; ate = true; }
     else if (pre.type) { ate = true; }
 
-    let collIndex = this.snake.body.findIndex((s,i)=> i && s.x===nx && s.y===ny);
+    const collIndex = this.snake.body.findIndex((s,i)=> i && s.x===nx && s.y===ny);
     if (collIndex >= 0) {
       if (this.hp > 0) { this.setHP(this.hp - 1); this.snake.body = this.snake.body.slice(0, collIndex); }
       else { this.gameOver(); return; }
