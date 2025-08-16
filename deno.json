@@ -1,0 +1,16 @@
+{
+  "fmt": {
+    "indentWidth": 2,
+    "lineWidth": 100,
+  },
+  "lint": {
+    "rules": {
+      "tags": ["recommended"],
+    },
+  },
+  "tasks": {
+    "fmt": "deno fmt",
+    "lint": "deno lint",
+    "test": "deno test",
+  },
+}

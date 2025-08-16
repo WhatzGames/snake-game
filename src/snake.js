@@ -1,6 +1,8 @@
+'use strict';
+
 // Entry script for Snake — Dark Mode (Canvas)
 
-class Config {
+export class Config {
   static GRID = 24;
   static BASE_CPS = 6;
   static MAX_CPS = 16;
@@ -24,7 +26,7 @@ class Config {
   static CONTROLS_KEY = 'snake_controls_v1';
 }
 
-class StorageService {
+export class StorageService {
   getHighScore() {
     try { return +localStorage.getItem(Config.HS_KEY) || 0; } catch { return 0; }
   }
@@ -902,6 +904,3 @@ if (typeof window !== 'undefined') {
   })();
 }
 
-if (typeof module !== 'undefined') {
-  module.exports = { StorageService, Config };
-}
