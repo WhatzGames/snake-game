@@ -1,100 +1,119 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Snake — Dark Mode (Canvas)</title>
-  <link rel="stylesheet" href="./styles.css" />
-</head>
-<body>
-  <div class="shell">
-    <div class="card">
-      <header>
-        <h1><span class="dot"></span> Snake</h1>
-        <div class="stats">
-          <button class="info-btn" id="infoHeaderBtn" aria-label="Info">ⓘ</button>
-          <button class="info-btn desktop-only" id="controlsHeaderBtn" aria-label="Controls">⌨</button>
-          <div class="chip">Score: <strong id="score">0</strong></div>
-          <div class="chip">High: <strong id="high">0</strong></div>
-          <div class="chip">Speed: <strong id="speed">1.0x</strong></div>
-          <div class="chip">Slow: <strong id="slow">0.0s</strong></div>
-          <div class="chip">HP: <strong id="hp">0</strong></div>
-        </div>
-      </header>
-      <div class="play">
-        <aside class="legend">
-          <div class="legend-title">Legend</div>
-          <div class="legend-item">
-            <canvas id="icon-apple" width="36" height="36"></canvas>
-            <div class="name">Apple</div>
-            <div class="desc">+1 score, grow by 1, slightly increases base speed.</div>
-          </div>
-          <div class="legend-item">
-            <canvas id="icon-banana" width="36" height="36"></canvas>
-            <div class="name">Banana</div>
-            <div class="desc">Temporarily slows speed; duration scales with high score (capped).</div>
-          </div>
-          <div class="legend-item">
-            <canvas id="icon-orange" width="36" height="36"></canvas>
-            <div class="name">Orange</div>
-            <div class="desc">+1 hitpoint up to a small maximum.</div>
-          </div>
-          <div class="legend-item">
-            <canvas id="icon-pear" width="36" height="36"></canvas>
-            <div class="name">Pear</div>
-            <div class="desc">Spawns in pairs; eating one teleports you to the other.</div>
-          </div>
-          <div class="legend-item">
-            <canvas id="icon-cherry" width="36" height="36"></canvas>
-            <div class="name">Cherry</div>
-            <div class="desc">Spawns on edges; when wrap is off: next move only, hit a wall to wrap once; otherwise just +1 score.</div>
-          </div>
-          <div class="legend-item">
-            <canvas id="icon-mouse" width="36" height="36"></canvas>
-            <div class="name">Mouse</div>
-            <div class="desc">Moves in 8 directions, avoids the snake, eats fruits; +5 if eaten.</div>
-          </div>
-          <div class="controls">
-            <div class="legend-title">Controls</div>
-            <div class="control-row">
-              <div class="kbdbar"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></div>
-              <div class="desc">Move the snake. You cannot reverse into yourself.</div>
-            </div>
-            <div class="control-row">
-              <div class="kbdbar"><kbd>P</kbd></div>
-              <div class="desc">Pause / resume.</div>
-            </div>
-            <div class="control-row">
-              <div class="kbdbar"><kbd>R</kbd></div>
-              <div class="desc">Restart from the current start state.</div>
-            </div>
-            <div class="control-row">
-              <div class="kbdbar"><kbd>T</kbd></div>
-              <div class="desc">Toggle wrap-around walls.</div>
-            </div>
-          </div>
-        </aside>
-        <div class="board-wrap">
-          <canvas id="board" width="640" height="640" aria-label="Snake board" role="img"></canvas>
-        </div>
-      </div>
-      <div class="touchpad" aria-label="Touch controls">
-        <div class="dpad">
-          <div class="row">
-            <button class="btn" data-dir="up" aria-label="Up">▲</button>
-          </div>
-          <div class="row">
-            <button class="btn" data-dir="left" aria-label="Left">◀</button>
-            <button class="btn small" data-action="pause" aria-label="Pause/Resume">⏯</button>
-            <button class="btn" data-dir="right" aria-label="Right">▶</button>
-          </div>
-          <div class="row">
-            <button class="btn" data-dir="down" aria-label="Down">▼</button>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-<script type="module" src="./src/snake.js"></script>
-</body>
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>Snake — Dark Mode (Canvas)</title>
+		<link rel="stylesheet" href="./styles.css" />
+	</head>
+	<body>
+		<div class="shell">
+			<div class="card">
+				<header>
+					<h1><span class="dot"></span> Snake</h1>
+					<div class="stats">
+						<button class="info-btn" id="infoHeaderBtn" aria-label="Info">ⓘ</button>
+						<button class="info-btn desktop-only" id="controlsHeaderBtn" aria-label="Controls">
+							⌨
+						</button>
+						<div class="chip">Score: <strong id="score">0</strong></div>
+						<div class="chip">High: <strong id="high">0</strong></div>
+						<div class="chip">Speed: <strong id="speed">1.0x</strong></div>
+						<div class="chip">Slow: <strong id="slow">0.0s</strong></div>
+						<div class="chip">HP: <strong id="hp">0</strong></div>
+					</div>
+				</header>
+				<div class="play">
+					<aside class="legend">
+						<div class="legend-title">Legend</div>
+						<div class="legend-item">
+							<canvas id="icon-apple" width="36" height="36"></canvas>
+							<div class="name">Apple</div>
+							<div class="desc">+1 score, grow by 1, slightly increases base speed.</div>
+						</div>
+						<div class="legend-item">
+							<canvas id="icon-banana" width="36" height="36"></canvas>
+							<div class="name">Banana</div>
+							<div class="desc">
+								Temporarily slows speed; duration scales with high score (capped).
+							</div>
+						</div>
+						<div class="legend-item">
+							<canvas id="icon-orange" width="36" height="36"></canvas>
+							<div class="name">Orange</div>
+							<div class="desc">+1 hitpoint up to a small maximum.</div>
+						</div>
+						<div class="legend-item">
+							<canvas id="icon-pear" width="36" height="36"></canvas>
+							<div class="name">Pear</div>
+							<div class="desc">Spawns in pairs; eating one teleports you to the other.</div>
+						</div>
+						<div class="legend-item">
+							<canvas id="icon-cherry" width="36" height="36"></canvas>
+							<div class="name">Cherry</div>
+							<div class="desc">
+								Spawns on edges; when wrap is off: next move only, hit a wall to wrap once;
+								otherwise just +1 score.
+							</div>
+						</div>
+						<div class="legend-item">
+							<canvas id="icon-mouse" width="36" height="36"></canvas>
+							<div class="name">Mouse</div>
+							<div class="desc">
+								Moves in 8 directions, avoids the snake, eats fruits; +5 if eaten.
+							</div>
+						</div>
+						<div class="controls">
+							<div class="legend-title">Controls</div>
+							<div class="control-row">
+								<div class="kbdbar">
+									<kbd data-action="up">W</kbd><kbd data-action="left">A</kbd><kbd
+										data-action="down"
+									>S</kbd><kbd data-action="right">D</kbd>
+								</div>
+								<div class="desc">Move the snake. You cannot reverse into yourself.</div>
+							</div>
+							<div class="control-row">
+								<div class="kbdbar"><kbd data-action="pause">P</kbd></div>
+								<div class="desc">Pause / resume.</div>
+							</div>
+							<div class="control-row">
+								<div class="kbdbar"><kbd data-action="restart">R</kbd></div>
+								<div class="desc">Restart from the current start state.</div>
+							</div>
+							<div class="control-row">
+								<div class="kbdbar"><kbd data-action="wrap">T</kbd></div>
+								<div class="desc">Toggle wrap-around walls.</div>
+							</div>
+						</div>
+					</aside>
+					<div class="board-wrap">
+						<canvas
+							id="board"
+							width="640"
+							height="640"
+							aria-label="Snake board"
+							role="img"
+						></canvas>
+					</div>
+				</div>
+				<div class="touchpad" aria-label="Touch controls">
+					<div class="dpad">
+						<div class="row">
+							<button class="btn" data-dir="up" aria-label="Up">▲</button>
+						</div>
+						<div class="row">
+							<button class="btn" data-dir="left" aria-label="Left">◀</button>
+							<button class="btn small" data-action="pause" aria-label="Pause/Resume">⏯</button>
+							<button class="btn" data-dir="right" aria-label="Right">▶</button>
+						</div>
+						<div class="row">
+							<button class="btn" data-dir="down" aria-label="Down">▼</button>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+		<script type="module" src="./src/snake.js"></script>
+	</body>
 </html>

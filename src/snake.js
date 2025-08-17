@@ -1,5 +1,7 @@
 'use strict';
 
+import controlsConfig from '../controls.config.json' with { type: 'json' };
+
 // Entry script for Snake — Dark Mode (Canvas)
 
 export class Config {
@@ -274,7 +276,9 @@ class OverlayManager {
       <div class=\"title\" style=\"color: var(--danger)\">Game Over</div>
       <div class=\"subtitle\">Score: <strong>${score}</strong> · Best: <strong>${best}</strong> · HP: <strong>${hp}</strong></div>
       <div class=\"btns\">
-        <button class=\"primary\" id=\"restartBtn\">Restart (R)</button>
+        <button class=\"primary\" id=\"restartBtn\">Restart (${
+			this.#game.keyText(this.#game.restartKey)
+		})</button>
         <button id=\"wrapToggle\">Wrap: ${wrapWalls ? 'On' : 'Off'}</button>
         <button class=\"info-btn\" id=\"infoBtn\" aria-label=\"Info\">ⓘ</button>
       </div>`;
@@ -302,10 +306,10 @@ class OverlayManager {
       <div class=\"legend-item\"><canvas id=\"legend-icon-mouse\" width=\"36\" height=\"36\"></canvas><div class=\"name\">Mouse</div><div class=\"desc\">Moves in 8 directions, avoids the snake, eats fruits; +5 if eaten.</div></div>
       <div class=\"controls\">
         <div class=\"legend-title\">Controls</div>
-        <div class=\"control-row\"><div class=\"kbdbar\"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></div><div class=\"desc\">Move the snake. You cannot reverse into yourself.</div></div>
-        <div class=\"control-row\"><div class=\"kbdbar\"><kbd>P</kbd></div><div class=\"desc\">Pause / resume.</div></div>
-        <div class=\"control-row\"><div class=\"kbdbar\"><kbd>R</kbd></div><div class=\"desc\">Restart from the current start state.</div></div>
-        <div class=\"control-row\"><div class=\"kbdbar\"><kbd>T</kbd></div><div class=\"desc\">Toggle wrap-around walls.</div></div>
+        <div class=\"control-row\"><div class=\"kbdbar\"><kbd data-action=\"up\">W</kbd><kbd data-action=\"left\">A</kbd><kbd data-action=\"down\">S</kbd><kbd data-action=\"right\">D</kbd></div><div class=\"desc\">Move the snake. You cannot reverse into yourself.</div></div>
+        <div class=\"control-row\"><div class=\"kbdbar\"><kbd data-action=\"pause\">P</kbd></div><div class=\"desc\">Pause / resume.</div></div>
+        <div class=\"control-row\"><div class=\"kbdbar\"><kbd data-action=\"restart\">R</kbd></div><div class=\"desc\">Restart from the current start state.</div></div>
+        <div class=\"control-row\"><div class=\"kbdbar\"><kbd data-action=\"wrap\">T</kbd></div><div class=\"desc\">Toggle wrap-around walls.</div></div>
       </div>
       <div class=\"btns\"><button class=\"primary\" id=\"closeLegend\">Close</button></div>`;
 		const o = this.addOverlay(html, 'legend', true);
@@ -328,22 +332,8 @@ class OverlayManager {
 		const wasPlaying = this.#game.playing;
 		this.#game.playing = false;
 		const scheme = current && current.scheme ? current.scheme : 'wasd';
-		let keys = current && current.keys ? { ...current.keys } : {
-			up: 'KeyW',
-			left: 'KeyA',
-			down: 'KeyS',
-			right: 'KeyD',
-			pause: 'KeyP',
-			restart: 'KeyR',
-			wrap: 'KeyT',
-		};
-		const keyText = (code) => {
-			if (!code) return '?';
-			if (code.startsWith('Key')) return code.slice(3);
-			const arrows = { ArrowUp: '↑', ArrowDown: '↓', ArrowLeft: '←', ArrowRight: '→' };
-			if (arrows[code]) return arrows[code];
-			return code;
-		};
+		let keys = current && current.keys ? { ...current.keys } : { ...controlsConfig.schemes.wasd };
+		const keyText = (code) => this.#game.keyText(code);
 		const html = `
       <div class="title">Choose Controls</div>
       <div style="margin-bottom:8px;text-align:left">
@@ -391,26 +381,8 @@ class OverlayManager {
 			}
 		};
 		select.addEventListener('change', () => {
-			if (select.value === 'wasd') {
-				keys = {
-					up: 'KeyW',
-					left: 'KeyA',
-					down: 'KeyS',
-					right: 'KeyD',
-					pause: 'KeyP',
-					restart: 'KeyR',
-					wrap: 'KeyT',
-				};
-			} else if (select.value === 'arrows') {
-				keys = {
-					up: 'ArrowUp',
-					left: 'ArrowLeft',
-					down: 'ArrowDown',
-					right: 'ArrowRight',
-					pause: 'KeyP',
-					restart: 'KeyR',
-					wrap: 'KeyT',
-				};
+			if (controlsConfig.schemes[select.value]) {
+				keys = { ...controlsConfig.schemes[select.value] };
 			}
 			updateButtons();
 		});
@@ -436,26 +408,8 @@ class OverlayManager {
 		o.querySelector('#saveControls').addEventListener('click', () => {
 			const chosen = select.value;
 			let saveKeys = { ...keys };
-			if (chosen === 'wasd') {
-				saveKeys = {
-					up: 'KeyW',
-					left: 'KeyA',
-					down: 'KeyS',
-					right: 'KeyD',
-					pause: 'KeyP',
-					restart: 'KeyR',
-					wrap: 'KeyT',
-				};
-			} else if (chosen === 'arrows') {
-				saveKeys = {
-					up: 'ArrowUp',
-					left: 'ArrowLeft',
-					down: 'ArrowDown',
-					right: 'ArrowRight',
-					pause: 'KeyP',
-					restart: 'KeyR',
-					wrap: 'KeyT',
-				};
+			if (controlsConfig.schemes[chosen]) {
+				saveKeys = { ...controlsConfig.schemes[chosen] };
 			}
 			this.#game.storage.setControls({ scheme: chosen, keys: saveKeys });
 			this.#game.updateKeyMap();
@@ -1042,6 +996,13 @@ class Game {
 		this.isTouch = false;
 		this.loop = this.loop.bind(this);
 	}
+
+	keyText(code) {
+		if (!code) return '?';
+		if (code.startsWith('Key')) return code.slice(3);
+		const map = { ArrowUp: '↑', ArrowDown: '↓', ArrowLeft: '←', ArrowRight: '→' };
+		return map[code] || code;
+	}
 	get storage() {
 		return this.#storage;
 	}
@@ -1085,33 +1046,16 @@ class Game {
 	}
 	updateLegendControls(keys) {
 		const containers = document.querySelectorAll('.controls');
-		const txt = (code) => {
-			if (!code) return '?';
-			if (code.startsWith('Key')) return code.slice(3);
-			const map = { ArrowUp: '↑', ArrowDown: '↓', ArrowLeft: '←', ArrowRight: '→' };
-			return map[code] || code;
-		};
-		const order = [keys.up, keys.left, keys.down, keys.right];
 		containers.forEach((cont) => {
-			const bar = cont.querySelector('.control-row .kbdbar');
-			if (!bar) return;
-			const kbds = bar.querySelectorAll('kbd');
-			order.forEach((code, idx) => {
-				if (kbds[idx]) kbds[idx].textContent = txt(code);
+			cont.querySelectorAll('kbd[data-action]').forEach((kbd) => {
+				const action = kbd.getAttribute('data-action');
+				if (keys[action]) kbd.textContent = this.keyText(keys[action]);
 			});
 		});
 	}
 	updateKeyMap() {
 		const cfg = this.#storage.getControls();
-		const keys = cfg && cfg.keys ? cfg.keys : {
-			up: 'KeyW',
-			left: 'KeyA',
-			down: 'KeyS',
-			right: 'KeyD',
-			pause: 'KeyP',
-			restart: 'KeyR',
-			wrap: 'KeyT',
-		};
+		const keys = cfg && cfg.keys ? cfg.keys : { ...controlsConfig.schemes.wasd };
 		this.keyMap = {
 			[keys.up]: { x: 0, y: -1 },
 			[keys.down]: { x: 0, y: 1 },
@@ -1149,7 +1093,9 @@ class Game {
 		this.mouseAcc = 0;
 		this.#overlay.removeOverlays();
 		this.updateCPSHud();
-		this.#overlay.hintOverlay('Pause with P · Toggle wrap with T');
+		this.#overlay.hintOverlay(
+			`Pause with ${this.keyText(this.pauseKey)} · Toggle wrap with ${this.keyText(this.wrapKey)}`,
+		);
 	}
 	newGame() {
 		this.setInitialIdleState();
@@ -1225,17 +1171,6 @@ class Game {
 		};
 		document.addEventListener('keydown', (e) => {
 			if (this.keysDisabled) return;
-			const keyTxt = (code) => {
-				if (!code) return '?';
-				if (code.startsWith('Key')) return code.slice(3);
-				const map = {
-					ArrowUp: '↑',
-					ArrowDown: '↓',
-					ArrowLeft: '←',
-					ArrowRight: '→',
-				};
-				return map[code] || code;
-			};
 			if (this.keyMap[e.code]) {
 				applyDir(this.keyMap[e.code]);
 				e.preventDefault();
@@ -1245,7 +1180,7 @@ class Game {
 					this.#overlay.removeOverlays();
 				} else {
 					this.#overlay.hintOverlay(
-						`Paused — press ${keyTxt(this.pauseKey)} to resume`,
+						`Paused — press ${this.keyText(this.pauseKey)} to resume`,
 					);
 				}
 			} else if (e.code === this.restartKey) {
