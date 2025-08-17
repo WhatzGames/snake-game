@@ -328,7 +328,7 @@ class OverlayManager {
 		const wasPlaying = this.#game.playing;
 		this.#game.playing = false;
 		const scheme = current && current.scheme ? current.scheme : 'wasd';
-		const keys = current && current.keys
+		let keys = current && current.keys
 			? current.keys
 			: { up: 'KeyW', left: 'KeyA', down: 'KeyS', right: 'KeyD' };
 		const keyText = (code) => {
@@ -341,19 +341,13 @@ class OverlayManager {
 		const html = `
       <div class="title">Choose Controls</div>
       <div style="margin-bottom:8px;text-align:left">
-        <label><input type="radio" name="scheme" value="wasd" ${
-			scheme === 'wasd' ? 'checked' : ''
-		}> WASD</label><br>
-        <label><input type="radio" name="scheme" value="arrows" ${
-			scheme === 'arrows' ? 'checked' : ''
-		}> Arrow Keys</label><br>
-        <label><input type="radio" name="scheme" value="custom" ${
-			scheme === 'custom' ? 'checked' : ''
-		}> Custom</label>
+        <select id="schemeSelect">
+          <option value="wasd" ${scheme === 'wasd' ? 'selected' : ''}>WASD</option>
+          <option value="arrows" ${scheme === 'arrows' ? 'selected' : ''}>Arrow Keys</option>
+          <option value="custom" ${scheme === 'custom' ? 'selected' : ''}>Custom</option>
+        </select>
       </div>
-      <div id="customWrap" style="${
-			scheme === 'custom' ? '' : 'display:none'
-		};text-align:left;margin-bottom:8px">
+      <div id="keyWrap" style="text-align:left;margin-bottom:8px">
         <div>Up: <button data-key="up" class="primary" style="min-width:40px">${
 			keyText(keys.up)
 		}</button></div>
@@ -379,13 +373,21 @@ class OverlayManager {
 			this.#game.playing = wasPlaying;
 			if (onDone) onDone();
 		};
-		const radio = o.querySelectorAll('input[name="scheme"]');
-		const customWrap = o.querySelector('#customWrap');
-		radio.forEach((r) =>
-			r.addEventListener('change', () => {
-				customWrap.style.display = r.value === 'custom' ? '' : 'none';
-			})
-		);
+		const select = o.querySelector('#schemeSelect');
+		const updateButtons = () => {
+			for (const k of ['up', 'left', 'down', 'right']) {
+				const btn = o.querySelector(`button[data-key="${k}"]`);
+				if (btn) btn.textContent = keyText(keys[k]);
+			}
+		};
+		select.addEventListener('change', () => {
+			if (select.value === 'wasd') {
+				keys = { up: 'KeyW', left: 'KeyA', down: 'KeyS', right: 'KeyD' };
+			} else if (select.value === 'arrows') {
+				keys = { up: 'ArrowUp', left: 'ArrowLeft', down: 'ArrowDown', right: 'ArrowRight' };
+			}
+			updateButtons();
+		});
 		const keyButtons = o.querySelectorAll('button[data-key]');
 		let capture = null;
 		keyButtons.forEach((btn) => {
@@ -400,14 +402,12 @@ class OverlayManager {
 			keys[capture] = ev.code;
 			const btn = o.querySelector(`button[data-key="${capture}"]`);
 			if (btn) btn.textContent = keyText(ev.code);
+			if (select.value !== 'custom') select.value = 'custom';
 			capture = null;
 		};
 		o.addEventListener('keydown', keyHandler);
 		o.querySelector('#saveControls').addEventListener('click', () => {
-			let chosen = 'wasd';
-			radio.forEach((r) => {
-				if (r.checked) chosen = r.value;
-			});
+			const chosen = select.value;
 			let saveKeys = keys;
 			if (chosen === 'wasd') saveKeys = { up: 'KeyW', left: 'KeyA', down: 'KeyS', right: 'KeyD' };
 			else if (chosen === 'arrows') {
