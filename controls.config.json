@@ -1,0 +1,22 @@
+{
+	"schemes": {
+		"wasd": {
+			"up": "KeyW",
+			"left": "KeyA",
+			"down": "KeyS",
+			"right": "KeyD",
+			"pause": "KeyP",
+			"restart": "KeyR",
+			"wrap": "KeyT"
+		},
+		"arrows": {
+			"up": "ArrowUp",
+			"left": "ArrowLeft",
+			"down": "ArrowDown",
+			"right": "ArrowRight",
+			"pause": "KeyP",
+			"restart": "KeyR",
+			"wrap": "KeyT"
+		}
+	}
+}

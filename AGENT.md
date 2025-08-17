@@ -63,4 +63,5 @@ When adding new configuration options, update all relevant places:
 2. Configuration schemas in `src/config/`
 3. Documentation in README.md
 
-All configuration keys use consistent naming and MUST be documented.
+All configuration keys use consistent naming and MUST be documented. Configuration JSON files must
+be imported using import attributes: `with { type: 'json' }`.
