@@ -238,17 +238,27 @@ button {
 	transition: transform 0.06s ease, box-shadow 0.2s ease, background 0.2s ease;
 }
 select {
-	padding: 10px 14px;
-	background: #0c1219;
-	border: 1px solid #1f2937;
-	border-radius: 10px;
-	color: #e6edf3;
-	font-weight: 600;
-	box-shadow: 0 4px 16px var(--shadow), inset 0 1px 0 #172033;
-	cursor: pointer;
+        padding: 10px 14px;
+        background: #0c1219;
+        border: 1px solid #1f2937;
+        border-radius: 10px;
+        color: #e6edf3;
+        font-weight: 600;
+        box-shadow: 0 4px 16px var(--shadow), inset 0 1px 0 #172033;
+        cursor: pointer;
+}
+#keyWrap {
+	margin-bottom: 8px;
+	display: grid;
+	grid-template-columns: auto auto;
+	gap: 6px 12px;
+	text-align: left;
+}
+#keyWrap button {
+	min-width: 40px;
 }
 button:hover {
-	transform: translateY(-1px);
+        transform: translateY(-1px);
 }
 button:active {
 	transform: translateY(1px);
