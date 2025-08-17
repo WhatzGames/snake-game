@@ -327,18 +327,16 @@ class OverlayManager {
 		const current = this.#game.storage.getControls();
 		const wasPlaying = this.#game.playing;
 		this.#game.playing = false;
-               const scheme = current && current.scheme ? current.scheme : 'wasd';
-               let keys = current && current.keys
-                       ? { ...current.keys }
-                       : {
-                               up: 'KeyW',
-                               left: 'KeyA',
-                               down: 'KeyS',
-                               right: 'KeyD',
-                               pause: 'KeyP',
-                               restart: 'KeyR',
-                               wrap: 'KeyT',
-                       };
+		const scheme = current && current.scheme ? current.scheme : 'wasd';
+		let keys = current && current.keys ? { ...current.keys } : {
+			up: 'KeyW',
+			left: 'KeyA',
+			down: 'KeyS',
+			right: 'KeyD',
+			pause: 'KeyP',
+			restart: 'KeyR',
+			wrap: 'KeyT',
+		};
 		const keyText = (code) => {
 			if (!code) return '?';
 			if (code.startsWith('Key')) return code.slice(3);
@@ -378,38 +376,44 @@ class OverlayManager {
 		const o = this.addOverlay(html, 'controls', true);
 		o.tabIndex = -1;
 		o.focus();
+		this.#game.keysDisabled = true;
 		const finish = () => {
 			o.remove();
 			this.#game.playing = wasPlaying;
+			this.#game.keysDisabled = false;
 			if (onDone) onDone();
 		};
 		const select = o.querySelector('#schemeSelect');
-               const updateButtons = () => {
-                       for (const k of ['up', 'left', 'down', 'right', 'pause', 'restart', 'wrap']) {
-                               const btn = o.querySelector(`button[data-key="${k}"]`);
-                               if (btn) btn.textContent = keyText(keys[k]);
-                       }
-               };
-               select.addEventListener('change', () => {
-                       if (select.value === 'wasd') {
-                               keys = {
-                                       ...keys,
-                                       up: 'KeyW',
-                                       left: 'KeyA',
-                                       down: 'KeyS',
-                                       right: 'KeyD',
-                               };
-                       } else if (select.value === 'arrows') {
-                               keys = {
-                                       ...keys,
-                                       up: 'ArrowUp',
-                                       left: 'ArrowLeft',
-                                       down: 'ArrowDown',
-                                       right: 'ArrowRight',
-                               };
-                       }
-                       updateButtons();
-               });
+		const updateButtons = () => {
+			for (const k of ['up', 'left', 'down', 'right', 'pause', 'restart', 'wrap']) {
+				const btn = o.querySelector(`button[data-key="${k}"]`);
+				if (btn) btn.textContent = keyText(keys[k]);
+			}
+		};
+		select.addEventListener('change', () => {
+			if (select.value === 'wasd') {
+				keys = {
+					up: 'KeyW',
+					left: 'KeyA',
+					down: 'KeyS',
+					right: 'KeyD',
+					pause: 'KeyP',
+					restart: 'KeyR',
+					wrap: 'KeyT',
+				};
+			} else if (select.value === 'arrows') {
+				keys = {
+					up: 'ArrowUp',
+					left: 'ArrowLeft',
+					down: 'ArrowDown',
+					right: 'ArrowRight',
+					pause: 'KeyP',
+					restart: 'KeyR',
+					wrap: 'KeyT',
+				};
+			}
+			updateButtons();
+		});
 		const keyButtons = o.querySelectorAll('button[data-key]');
 		let capture = null;
 		keyButtons.forEach((btn) => {
@@ -421,6 +425,7 @@ class OverlayManager {
 		const keyHandler = (ev) => {
 			if (!capture) return;
 			ev.preventDefault();
+			ev.stopPropagation();
 			keys[capture] = ev.code;
 			const btn = o.querySelector(`button[data-key="${capture}"]`);
 			if (btn) btn.textContent = keyText(ev.code);
@@ -429,26 +434,30 @@ class OverlayManager {
 		};
 		o.addEventListener('keydown', keyHandler);
 		o.querySelector('#saveControls').addEventListener('click', () => {
-                       const chosen = select.value;
-                       let saveKeys = { ...keys };
-                       if (chosen === 'wasd') {
-                               saveKeys = {
-                                       ...keys,
-                                       up: 'KeyW',
-                                       left: 'KeyA',
-                                       down: 'KeyS',
-                                       right: 'KeyD',
-                               };
-                       } else if (chosen === 'arrows') {
-                               saveKeys = {
-                                       ...keys,
-                                       up: 'ArrowUp',
-                                       left: 'ArrowLeft',
-                                       down: 'ArrowDown',
-                                       right: 'ArrowRight',
-                               };
-                       }
-                       this.#game.storage.setControls({ scheme: chosen, keys: saveKeys });
+			const chosen = select.value;
+			let saveKeys = { ...keys };
+			if (chosen === 'wasd') {
+				saveKeys = {
+					up: 'KeyW',
+					left: 'KeyA',
+					down: 'KeyS',
+					right: 'KeyD',
+					pause: 'KeyP',
+					restart: 'KeyR',
+					wrap: 'KeyT',
+				};
+			} else if (chosen === 'arrows') {
+				saveKeys = {
+					up: 'ArrowUp',
+					left: 'ArrowLeft',
+					down: 'ArrowDown',
+					right: 'ArrowRight',
+					pause: 'KeyP',
+					restart: 'KeyR',
+					wrap: 'KeyT',
+				};
+			}
+			this.#game.storage.setControls({ scheme: chosen, keys: saveKeys });
 			this.#game.updateKeyMap();
 			finish();
 		});
@@ -1015,6 +1024,7 @@ class Game {
 	cherrySteps = 0;
 	snake;
 	mouse;
+	keysDisabled = false;
 	constructor(canvas) {
 		this.#hud = new HUDService();
 		this.#storage = new StorageService();
@@ -1025,12 +1035,12 @@ class Game {
 		this.#errorOverlay = new ErrorOverlayService(this.#overlay);
 		this.snake = new SnakeModel();
 		this.mouse = new MouseModel();
-               this.keyMap = {};
-               this.pauseKey = 'KeyP';
-               this.restartKey = 'KeyR';
-               this.wrapKey = 'KeyT';
-               this.isTouch = false;
-               this.loop = this.loop.bind(this);
+		this.keyMap = {};
+		this.pauseKey = 'KeyP';
+		this.restartKey = 'KeyR';
+		this.wrapKey = 'KeyT';
+		this.isTouch = false;
+		this.loop = this.loop.bind(this);
 	}
 	get storage() {
 		return this.#storage;
@@ -1092,28 +1102,26 @@ class Game {
 		});
 	}
 	updateKeyMap() {
-               const cfg = this.#storage.getControls();
-               const keys = cfg && cfg.keys
-                       ? cfg.keys
-                       : {
-                               up: 'KeyW',
-                               left: 'KeyA',
-                               down: 'KeyS',
-                               right: 'KeyD',
-                               pause: 'KeyP',
-                               restart: 'KeyR',
-                               wrap: 'KeyT',
-                       };
-               this.keyMap = {
-                       [keys.up]: { x: 0, y: -1 },
-                       [keys.down]: { x: 0, y: 1 },
-                       [keys.left]: { x: -1, y: 0 },
-                       [keys.right]: { x: 1, y: 0 },
-               };
-               this.pauseKey = keys.pause || 'KeyP';
-               this.restartKey = keys.restart || 'KeyR';
-               this.wrapKey = keys.wrap || 'KeyT';
-               this.updateLegendControls(keys);
+		const cfg = this.#storage.getControls();
+		const keys = cfg && cfg.keys ? cfg.keys : {
+			up: 'KeyW',
+			left: 'KeyA',
+			down: 'KeyS',
+			right: 'KeyD',
+			pause: 'KeyP',
+			restart: 'KeyR',
+			wrap: 'KeyT',
+		};
+		this.keyMap = {
+			[keys.up]: { x: 0, y: -1 },
+			[keys.down]: { x: 0, y: 1 },
+			[keys.left]: { x: -1, y: 0 },
+			[keys.right]: { x: 1, y: 0 },
+		};
+		this.pauseKey = keys.pause || 'KeyP';
+		this.restartKey = keys.restart || 'KeyR';
+		this.wrapKey = keys.wrap || 'KeyT';
+		this.updateLegendControls(keys);
 	}
 	setInitialIdleState() {
 		const cx = Math.floor(Config.GRID / 2);
@@ -1215,34 +1223,38 @@ class Game {
 			}
 			this.snake.nextDir = nd;
 		};
-               document.addEventListener('keydown', (e) => {
-                       const keyTxt = (code) => {
-                               if (!code) return '?';
-                               if (code.startsWith('Key')) return code.slice(3);
-                               const map = {
-                                       ArrowUp: '↑',
-                                       ArrowDown: '↓',
-                                       ArrowLeft: '←',
-                                       ArrowRight: '→',
-                               };
-                               return map[code] || code;
-                       };
-                       if (this.keyMap[e.code]) {
-                               applyDir(this.keyMap[e.code]);
-                               e.preventDefault();
-                       } else if (e.code === this.pauseKey) {
-                               this.playing = !this.playing;
-                               if (this.playing) this.#overlay.removeOverlays();
-                               else this.#overlay.hintOverlay(
-                                       `Paused — press ${keyTxt(this.pauseKey)} to resume`,
-                               );
-                       } else if (e.code === this.restartKey) {
-                               this.newGame();
-                       } else if (e.code === this.wrapKey) {
-                               this.wrapWalls = !this.wrapWalls;
-                               this.#overlay.hintOverlay(`Wrap: ${this.wrapWalls ? 'On' : 'Off'}`);
-                       }
-               });
+		document.addEventListener('keydown', (e) => {
+			if (this.keysDisabled) return;
+			const keyTxt = (code) => {
+				if (!code) return '?';
+				if (code.startsWith('Key')) return code.slice(3);
+				const map = {
+					ArrowUp: '↑',
+					ArrowDown: '↓',
+					ArrowLeft: '←',
+					ArrowRight: '→',
+				};
+				return map[code] || code;
+			};
+			if (this.keyMap[e.code]) {
+				applyDir(this.keyMap[e.code]);
+				e.preventDefault();
+			} else if (e.code === this.pauseKey) {
+				this.playing = !this.playing;
+				if (this.playing) {
+					this.#overlay.removeOverlays();
+				} else {
+					this.#overlay.hintOverlay(
+						`Paused — press ${keyTxt(this.pauseKey)} to resume`,
+					);
+				}
+			} else if (e.code === this.restartKey) {
+				this.newGame();
+			} else if (e.code === this.wrapKey) {
+				this.wrapWalls = !this.wrapWalls;
+				this.#overlay.hintOverlay(`Wrap: ${this.wrapWalls ? 'On' : 'Off'}`);
+			}
+		});
 
 		// Touchpad buttons
 		const mapDir = (name) =>
