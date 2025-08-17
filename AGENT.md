@@ -1,8 +1,8 @@
 # Snake-Game Project
 
-This project is an enhanced clone of the traditional snake-game.
-It uses plain HTML, CSS and javascript and the game is rendered using a canvas.
-The sources are located under `tests/` while the source is available within the `src/` directory.
+This project is an enhanced clone of the traditional snake-game. It uses plain HTML, CSS and
+javascript and the game is rendered using a canvas. The sources are located under `tests/` while the
+source is available within the `src/` directory.
 
 ## Build & Commands
 
@@ -30,6 +30,9 @@ The sources are located under `tests/` while the source is available within the 
 - In CamelCase names, use "URL" (not "Url"), "API" (not "Api"), "ID" (not "Id")
 - Prefer object oriented programming patterns
 - prefer declaring fields and fun
+- Identifiers (IDs, classes, etc.) must avoid quotes or other special characters
+- Buttons representing the same action must share the same icon/label (e.g., the keyboard icon for
+  controls)
 
 ## Testing
 
@@ -41,10 +44,8 @@ The sources are located under `tests/` while the source is available within the 
 - Hosted using Github pages
 - production code is run under `/snake-game`
 - development code is run under `/snake-game/{branch-name}`
-  
+
 ## Security
-
-
 
 ## Git Workflow
 
@@ -57,6 +58,7 @@ The sources are located under `tests/` while the source is available within the 
 ## Configuration
 
 When adding new configuration options, update all relevant places:
+
 1. Environment variables in `.env.example`
 2. Configuration schemas in `src/config/`
 3. Documentation in README.md
